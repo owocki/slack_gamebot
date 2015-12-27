@@ -1,0 +1,2 @@
+slackbot
+django==1.9
