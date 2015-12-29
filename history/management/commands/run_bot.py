@@ -38,8 +38,8 @@ class Command(BaseCommand):
                 " " 
             message.reply(help_message)
 
-        @listen_to('^gamebot leaderboard ([@a-zA-z0-9]*)',re.IGNORECASE)
-        @listen_to('^leaderboard ([@a-zA-z0-9]*)',re.IGNORECASE)
+        @listen_to('^gamebot leaderboard (.*)',re.IGNORECASE)
+        @listen_to('^leaderboard (.*)',re.IGNORECASE)
         def leaderboard(message,gamename):
             STATS_SIZE_LIMIT = 1000
 
@@ -67,9 +67,9 @@ class Command(BaseCommand):
             stats_str = "Stats for {}: \n\n{}".format(gamename, stats_str)
             message.send(stats_str)
 
-        @listen_to('^history ([@a-zA-z0-9]*)',re.IGNORECASE)
-        @listen_to('^gamebot history ([@a-zA-z0-9]*)',re.IGNORECASE)
-        def challenge(message,gamename):
+        @listen_to('^history (.*)',re.IGNORECASE)
+        @listen_to('^gamebot history (.*)',re.IGNORECASE)
+        def history(message,gamename):
             HISTORY_SIZE_LIMIT = 10
             history_str = "\n".join(list( [ "* " + str(game) for game in Game.objects.filter(gamename=gamename).order_by('-created_on')[:HISTORY_SIZE_LIMIT] ]  ))
             if history_str:
@@ -78,7 +78,7 @@ class Command(BaseCommand):
             else:
                 message.send('No history found for {}'.format(gamename))
 
-        @listen_to('^challenge ([@a-zA-z0-9]*) ([@a-zA-z0-9]*)',re.IGNORECASE)
+        @listen_to('^challenge (.*) (.*)',re.IGNORECASE)
         def challenge(message,opponentname,gamename):
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
@@ -92,7 +92,7 @@ class Command(BaseCommand):
             this_message = "{}, {} challenged you to a game of {}. accept like this: `{}` \n\n{}".format(opponentname,sender,gamename,accept_message,gifurl)
             message.send(this_message)
 
-        @listen_to('^accept ([@a-zA-z0-9]*) ([@a-zA-z0-9]*)',re.IGNORECASE)
+        @listen_to('^accept (.*) (.*)',re.IGNORECASE)
         def accepted(message,opponentname,gamename):
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
@@ -105,8 +105,8 @@ class Command(BaseCommand):
             this_message = "{}, {} accepted your challenge to a game of {} \n\n{}".format(opponentname,sender,gamename,gifurl)
             message.send(this_message)
 
-        @listen_to('^won ([@a-zA-z0-9]*) ([@a-zA-z0-9]*)',re.IGNORECASE)
-        @listen_to('^win ([@a-zA-z0-9]*) ([@a-zA-z0-9]*)',re.IGNORECASE)
+        @listen_to('^won (.*) (.*)',re.IGNORECASE)
+        @listen_to('^win (.*) (.*)',re.IGNORECASE)
         def won(message,opponentname,gamename):
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
@@ -118,8 +118,8 @@ class Command(BaseCommand):
             #send response
             message.send("#win recorded")
 
-        @listen_to('^lost ([@a-zA-z0-9]*) ([@a-zA-z0-9]*)',re.IGNORECASE)
-        @listen_to('^loss ([@a-zA-z0-9]*) ([@a-zA-z0-9]*)',re.IGNORECASE)
+        @listen_to('^lost (.*) (.*)',re.IGNORECASE)
+        @listen_to('^loss (.*) (.*)',re.IGNORECASE)
         def loss(message,opponentname,gamename):
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
             opponentname = opponentname if opponentname.find('@') != -1 else '@' + opponentname
@@ -147,14 +147,15 @@ class Command(BaseCommand):
         def error_history_2(message):
             message.reply('Please specify a gametype and an opponent handle.')
 
-        @listen_to('^challenge ([@a-zA-z0-9]*)$',re.IGNORECASE)
-        @listen_to('^accept ([@a-zA-z0-9]*)$',re.IGNORECASE)
-        @listen_to('^win ([@a-zA-z0-9]*)$',re.IGNORECASE)
-        @listen_to('^won ([@a-zA-z0-9]*)$',re.IGNORECASE)
-        @listen_to('^lost ([@a-zA-z0-9]*)$',re.IGNORECASE)
-        @listen_to('^loss ([@a-zA-z0-9]*)$',re.IGNORECASE)
+        @listen_to('^challenge (.*)$',re.IGNORECASE)
+        @listen_to('^accept (.*)$',re.IGNORECASE)
+        @listen_to('^win (.*)$',re.IGNORECASE)
+        @listen_to('^won (.*)$',re.IGNORECASE)
+        @listen_to('^lost (.*)$',re.IGNORECASE)
+        @listen_to('^loss (.*)$',re.IGNORECASE)
         def error_history_3(message,next_arg):
-            message.reply('Please specify both a gametype and an opponent handle.')
+            #message.reply('Please specify both a gametype and an opponent handle.')
+            pass
 
         def main():
             bot = Bot()
