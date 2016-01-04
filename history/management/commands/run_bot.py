@@ -11,6 +11,14 @@ class Command(BaseCommand):
         from slackbot.bot import Bot
         import re 
 
+        def _get_user_username(message,opponentname):
+            if opponentname.find('>') > 0:
+                opp_userid = opponentname.replace('@','').replace('<','').replace('>','')
+                opponentname = '@' + str(message.channel._client.users[opp_userid][u'name'])
+            else:
+                opponentname = opponentname if opponentname.find('@') != -1 else '@' + opponentname
+            return opponentname
+
         def get_gif(type):
             if type == 'challenge':
                 gifs = ['http://media0.giphy.com/media/DaNgLGo1xefu0/200.gif','http://media2.giphy.com/media/HbkT5F5CiRD3O/200.gif','http://media4.giphy.com/media/10mRi3yn0TVjGw/200.gif','http://media0.giphy.com/media/lcezaVyxCMMqQ/200.gif','http://media2.giphy.com/media/zp0nsdaiKMP4s/200.gif','http://media1.giphy.com/media/rYAr8hOdPqUqk/200.gif','http://media1.giphy.com/media/QDMBetxJ8YDvy/200.gif','http://media1.giphy.com/media/ozhDtzrmemc0w/200.gif','http://media1.giphy.com/media/rhV4HrtcNkgW4/200.gif','http://media0.giphy.com/media/dW073LLVqyUH6/200.gif','http://media2.giphy.com/media/peM7G1oWYgahW/200.gif','http://media2.giphy.com/media/E8GWazqt84V1u/200.gif','http://media2.giphy.com/media/qX3CivVQbEwo/200.gif','http://media1.giphy.com/media/Xmhz0vejtVhp6/200.gif','http://media4.giphy.com/media/CTeW3X1txg556/200.gif','http://media3.giphy.com/media/T6wZ2b32ZRORW/200.gif','http://media3.giphy.com/media/R7IYpzLLMBomk/200.gif','http://media3.giphy.com/media/DeoY3iC6VLBHG/200.gif'] 
@@ -110,7 +118,7 @@ class Command(BaseCommand):
         def won(message,opponentname,gamename):
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
-            opponentname = opponentname if opponentname.find('@') != -1 else '@' + opponentname
+            opponentname = _get_user_username(message,opponentname)
 
             #body
             Game.objects.create(winner=sender,loser=opponentname,gamename=gamename,created_on=datetime.now(),modified_on=datetime.now())
@@ -122,8 +130,8 @@ class Command(BaseCommand):
         @listen_to('^loss (.*) (.*)',re.IGNORECASE)
         def loss(message,opponentname,gamename):
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
-            opponentname = opponentname if opponentname.find('@') != -1 else '@' + opponentname
-
+            opponentname = _get_user_username(message,opponentname)
+            
             #body
             Game.objects.create(winner=opponentname,loser=sender,gamename=gamename,created_on=datetime.now(),modified_on=datetime.now())
 
