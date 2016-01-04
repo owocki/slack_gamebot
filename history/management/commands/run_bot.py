@@ -109,6 +109,10 @@ class Command(BaseCommand):
 
             #body
             games = list(Game.objects.filter(gamename=gamename,winner=sender,loser=opponentname))+list(Game.objects.filter(gamename=gamename,winner=opponentname,loser=sender)) 
+            if not games:
+                message.send("No {} games found between {} and {}".format(gamename,sender,opponentname))
+                return;
+                
             stats_by_user = {}
 
             stats_for_sender = { 'wins' : 0, 'losses': 0, 'total': 0 }
