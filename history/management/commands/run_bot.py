@@ -38,6 +38,7 @@ class Command(BaseCommand):
                 " * `accept <@opponent> <gamename>` -- accepts challenge \n" +\
                 " * `won <@opponent> <gamename>` -- records a win against @opponent \n" +\
                 " * `lost <@opponent> <gamename>` -- records a loss against @opponent \n" +\
+                " * `predict <@opponent> <gamename>` -- predict the outcome of a game against @opponent \n" +\
                 " Stats: \n" +\
                 " * `gamebot leaderboard <gamename>` -- displays a leaderboard\n" +\
                 " * `gamebot history <gamename>` -- displays history for game\n" +\
@@ -98,6 +99,30 @@ class Command(BaseCommand):
 
             #send response
             this_message = "{}, {} challenged you to a game of {}. accept like this: `{}` \n\n{}".format(opponentname,sender,gamename,accept_message,gifurl)
+            message.send(this_message)
+
+        @listen_to('^predict (.*) (.*)',re.IGNORECASE)
+        def predict(message,opponentname,gamename):
+            #setup
+            sender = "@" + message.channel._client.users[message.body['user']][u'name']
+            opponentname = opponentname if opponentname.find('@') != -1 else '@' + opponentname
+
+            #body
+            games = list(Game.objects.filter(gamename=gamename,winner=sender,loser=opponentname))+list(Game.objects.filter(gamename=gamename,winner=opponentname,loser=sender)) 
+            stats_by_user = {}
+
+            stats_for_sender = { 'wins' : 0, 'losses': 0, 'total': 0 }
+            for game in games:
+                if game.winner == sender:
+                    stats_for_sender['wins'] = stats_for_sender['wins'] + 1 
+                    stats_for_sender['total'] = stats_for_sender['total'] + 1 
+                else:
+                    stats_for_sender['losses'] = stats_for_sender['losses'] + 1 
+                    stats_for_sender['total'] = stats_for_sender['total'] + 1 
+
+            #send response
+            win_pct = round(stats_for_sender['wins'] * 1.0 / stats_for_sender['total'],2)*100
+            this_message = "{} total {} games played between {} vs {}.  {} is {}% likely to win next game".format(stats_for_sender['total'],gamename,sender,opponentname,sender,win_pct)
             message.send(this_message)
 
         @listen_to('^accept (.*) (.*)',re.IGNORECASE)
