@@ -91,7 +91,7 @@ class Command(BaseCommand):
         def challenge(message,opponentname,gamename):
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
-            opponentname = opponentname if opponentname.find('@') != -1 else '@' + opponentname
+            opponentname = _get_user_username(message,opponentname)
 
             #body
             accept_message = "accept {} {}".format(sender,gamename)
@@ -105,8 +105,8 @@ class Command(BaseCommand):
         def predict(message,opponentname,gamename):
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
-            opponentname = opponentname if opponentname.find('@') != -1 else '@' + opponentname
-
+            opponentname = _get_user_username(message,opponentname)
+            
             #body
             games = list(Game.objects.filter(gamename=gamename,winner=sender,loser=opponentname))+list(Game.objects.filter(gamename=gamename,winner=opponentname,loser=sender)) 
             if not games:
@@ -133,7 +133,7 @@ class Command(BaseCommand):
         def accepted(message,opponentname,gamename):
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
-            opponentname = opponentname if opponentname.find('@') != -1 else '@' + opponentname
+            opponentname = _get_user_username(message,opponentname)
 
             #body
             gifurl = get_gif('accepted')
