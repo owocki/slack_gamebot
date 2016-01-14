@@ -1,4 +1,5 @@
 from django.core.management.base import BaseCommand, CommandError
+from django.utils import timezone
 from history.models import Game
 from datetime import datetime
 from elo import rate_1vs1
@@ -53,7 +54,7 @@ class Command(BaseCommand):
                 rankings[game.winner] = begin_elo_at
                 rankings[game.loser] = begin_elo_at
 
-            x_axis = [game.created_on for game in games]
+            x_axis = [game.created_on for game in games] + [ timezone.now() + timezone.timedelta(hours=6) ]
 
             #setup history object
             rankings_history = rankings.copy()
@@ -67,6 +68,10 @@ class Command(BaseCommand):
                 rankings[game.loser] = new_rankings[1]
                 for player in tracing.keys():
                     rankings_history[player] =  rankings_history[player] + [rankings[player]]
+
+            #add todays ranking
+            for player in tracing.keys():
+                rankings_history[player] =  rankings_history[player] + [rankings_history[player][-1]]
 
             traces = []
             # Create traces
