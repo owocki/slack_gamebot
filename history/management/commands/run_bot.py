@@ -65,6 +65,7 @@ class Command(BaseCommand):
                 " * `won <@opponent> <gamename>` -- records a win against @opponent \n" +\
                 " * `lost <@opponent> <gamename>` -- records a loss against @opponent \n" +\
                 " * `predict <@opponent> <gamename>` -- predict the outcome of a game against @opponent \n" +\
+                " * `taunt <@opponent> ` -- taunt @opponent \n" +\
                 " Stats: \n" +\
                 " * `gamebot leaderboard <gamename>` -- displays a leaderboard\n" +\
                 " * `gamebot history <gamename>` -- displays history for game\n" +\
