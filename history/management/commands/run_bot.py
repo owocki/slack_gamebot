@@ -38,6 +38,7 @@ class Command(BaseCommand):
 
         def _get_elo_graph(gamename):
             #setup plotly
+            import random
             import plotly.plotly as py
             import plotly.graph_objs as go
             py.sign_in('slack_gamebot', 'e07cmetnop')
@@ -83,8 +84,12 @@ class Command(BaseCommand):
                     name = player
                 ) ]
 
-            # Plot and embed in ipython notebook!
-            url = py.plot(traces, filename='python-datetime',auto_open=False,yTitle='ELO Rankings',title='Leaderboard history for ' + gamename) + ".png"
+            # Plot!
+            url = ""
+            try:
+                url = py.plot(traces, filename='python-datetime',auto_open=False,xTitle='Dates',yTitle='ELO Rankings',title='Leaderboard history for ' + gamename) + ".png?" + str(random.random())
+            except Exception:
+                pass
 
             return url
 
