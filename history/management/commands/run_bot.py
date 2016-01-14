@@ -1,6 +1,8 @@
 from django.core.management.base import BaseCommand, CommandError
 from history.models import Game
 from datetime import datetime
+from elo import rate_1vs1
+
 
 class Command(BaseCommand):
     help = 'Runs slackbot'
@@ -10,6 +12,28 @@ class Command(BaseCommand):
         from slackbot.bot import listen_to
         from slackbot.bot import Bot
         import re 
+
+        def _get_elo(gamename):
+            #get games from ORM
+            games = Game.objects.filter(gamename=gamename).order_by('created_on')
+
+            #instantiate rankings object
+            begin_elo_at = 1000
+            rankings = {}
+            for game in games:
+                rankings[game.winner] = begin_elo_at
+                rankings[game.loser] = begin_elo_at
+
+            #build actual rankings
+            for game in games:
+                new_rankings = rate_1vs1(rankings[game.winner],rankings[game.loser])
+                rankings[game.winner] = new_rankings[0]
+                rankings[game.loser] = new_rankings[1]
+
+            for player in rankings:
+                rankings[player] = int(round(rankings[player],0))
+
+            return rankings
 
         def _get_user_username(message,opponentname):
             if opponentname.find('>') > 0:
@@ -59,9 +83,10 @@ class Command(BaseCommand):
 
             players = list(set(list(Game.objects.filter(gamename=gamename).values_list('winner',flat=True).distinct()) + list(Game.objects.filter(gamename=gamename).values_list('loser',flat=True).distinct())))
             stats_by_user = {}
+            elo_rankings = _get_elo(gamename)
 
             for player in players:
-                stats_by_user[player] = { 'name': player, 'wins' : 0, 'losses': 0, 'total': 0 }
+                stats_by_user[player] = { 'name': player, 'elo': elo_rankings[player], 'wins' : 0, 'losses': 0, 'total': 0 }
 
             for game in Game.objects.filter(gamename=gamename).order_by('-created_on')[:STATS_SIZE_LIMIT]:
                 stats_by_user[game.winner]['wins']+=1
@@ -72,9 +97,9 @@ class Command(BaseCommand):
             for player in stats_by_user:
                 stats_by_user[player]['win_pct'] =  round(stats_by_user[player]['wins'] * 1.0 / stats_by_user[player]['total'],2)*100
 
-            stats_by_user = sorted(stats_by_user.items(), key=lambda x: -1 * x[1]['win_pct'])
+            stats_by_user = sorted(stats_by_user.items(), key=lambda x: -1 * x[1]['elo'])
 
-            stats_str = "\n ".join([  " * {}: {}/{} ({}%)".format(stats[1]['name'],stats[1]['wins'],stats[1]['losses'],stats[1]['win_pct'])  for stats in stats_by_user ])
+            stats_str = "\n ".join([  " * {}({}): {}/{} ({}%)".format(stats[1]['name'],stats[1]['elo'],stats[1]['wins'],stats[1]['losses'],stats[1]['win_pct'])  for stats in stats_by_user ])
             stats_str = "Stats for {}: \n\n{}".format(gamename, stats_str)
             message.send(stats_str)
 
