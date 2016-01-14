@@ -79,7 +79,7 @@ class Command(BaseCommand):
                 ) ]
 
             # Plot and embed in ipython notebook!
-            url = py.plot(traces, filename='python-datetime') + ".png"
+            url = py.plot(traces, filename='python-datetime',auto_open=False) + ".png"
 
             return url
 
