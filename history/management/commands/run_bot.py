@@ -22,6 +22,8 @@ class Command(BaseCommand):
         def get_gif(type):
             if type == 'challenge':
                 gifs = ['http://media0.giphy.com/media/DaNgLGo1xefu0/200.gif','http://media2.giphy.com/media/HbkT5F5CiRD3O/200.gif','http://media4.giphy.com/media/10mRi3yn0TVjGw/200.gif','http://media0.giphy.com/media/lcezaVyxCMMqQ/200.gif','http://media2.giphy.com/media/zp0nsdaiKMP4s/200.gif','http://media1.giphy.com/media/rYAr8hOdPqUqk/200.gif','http://media1.giphy.com/media/QDMBetxJ8YDvy/200.gif','http://media1.giphy.com/media/ozhDtzrmemc0w/200.gif','http://media1.giphy.com/media/rhV4HrtcNkgW4/200.gif','http://media0.giphy.com/media/dW073LLVqyUH6/200.gif','http://media2.giphy.com/media/peM7G1oWYgahW/200.gif','http://media2.giphy.com/media/E8GWazqt84V1u/200.gif','http://media2.giphy.com/media/qX3CivVQbEwo/200.gif','http://media1.giphy.com/media/Xmhz0vejtVhp6/200.gif','http://media4.giphy.com/media/CTeW3X1txg556/200.gif','http://media3.giphy.com/media/T6wZ2b32ZRORW/200.gif','http://media3.giphy.com/media/R7IYpzLLMBomk/200.gif','http://media3.giphy.com/media/DeoY3iC6VLBHG/200.gif'] 
+            elif type == 'taunt':
+                gifs = ['https://media1.giphy.com/media/l0GRkpk8mcWhekrVC/200.gif' ,'https://media4.giphy.com/media/l41lKvLqu2xcYX8ly/200.gif' ,'https://media1.giphy.com/media/3o85xvq7HFBjnX3VBK/200.gif' ,'https://media2.giphy.com/media/tG4q5t4gdepjy/200.gif' ,'https://media4.giphy.com/media/YE5RrQAC1g7xm/200.gif' ,'https://media0.giphy.com/media/BFw86Be9MSWNa/200.gif' ,'https://media3.giphy.com/media/wp8DE7gpQKre0/200.gif' ,'https://media4.giphy.com/media/14wAFFW4x09qgw/200.gif' ,'https://media3.giphy.com/media/7Q8wiXGmhbXO0/200.gif' ,'https://media2.giphy.com/media/tvC9faYbQrHlS/200.gif' ,'https://media4.giphy.com/media/fCOYq0wyKeWZy/200.gif' ,'https://media0.giphy.com/media/136ttE0X1uWmsM/200.gif' ,'https://media0.giphy.com/media/86VV3ZYT1owDu/200.gif' ,'https://media0.giphy.com/media/rg22G4omR08lW/200.gif' ,'https://media0.giphy.com/media/u1hqtTKoTWVHi/200.gif' ,'https://media3.giphy.com/media/ETKSOS0KOgljO/200.gif' ,'https://media1.giphy.com/media/N4iJYIkzuIn6g/200.gif' ,'https://media4.giphy.com/media/pK1xYb8ftQZdm/200.gif' ,'https://media2.giphy.com/media/qGgu8qGWbPMkg/200.gif' ,'https://media3.giphy.com/media/FenUXhxrhGLle/200.gif' ,'https://media1.giphy.com/media/LByI6Ze8GWZKo/200.gif' ,'https://media1.giphy.com/media/uLHj9dmluha8M/200.gif' ,'https://media0.giphy.com/media/SpdOR2xwYzvYk/200.gif' ,'https://media3.giphy.com/media/kOlwMOrqkBQ6A/200.gif' ,'https://media3.giphy.com/media/WgvO9zb96dVx6/200.gif'] 
             else:
                 gifs = ['http://media.tumblr.com/0e07ec60ce9b5f8019e7e98510e3e86e/tumblr_inline_mvq3ol2lHr1qahu1s.gif','http://38.media.tumblr.com/tumblr_ls933rtrAa1r3v6f2o1_500.gif','http://media.tumblr.com/ee3d490720837f2728e8de52094e1413/tumblr_inline_mknw21r56j1qz4rgp.gif','http://25.media.tumblr.com/ec131b67c3a55dcb99fa5e4ef5f3599b/tumblr_mmst60zClN1rhhrvto1_500.gif','http://31.media.tumblr.com/eb9e90aff682182d613737b9072f8e41/tumblr_mgo892vhpu1rk6n1go1_500.gif','http://media.tumblr.com/tumblr_mdicgvDPim1qh8ujs.gif','http://31.media.tumblr.com/f86af9c670404254ae22ab900a4c51f1/tumblr_mypy1toyaL1sgrpsuo1_500.gif','http://33.media.tumblr.com/aebeb686a640493b512c8999881d1fb5/tumblr_njzrzaICmG1s3h43ko1_500.gif','http://24.media.tumblr.com/209fafb786577f6556c8b49c1c8112e4/tumblr_mlqov0OsUf1rch0b8o1_500.gif']
 
@@ -99,6 +101,19 @@ class Command(BaseCommand):
 
             #send response
             this_message = "{}, {} challenged you to a game of {}. accept like this: `{}` \n\n{}".format(opponentname,sender,gamename,accept_message,gifurl)
+            message.send(this_message)
+
+        @listen_to('^taunt (.*)',re.IGNORECASE)
+        def taunt(message,opponentname):
+            #setup
+            sender = "@" + message.channel._client.users[message.body['user']][u'name']
+            opponentname = _get_user_username(message,opponentname)
+
+            #body
+            gifurl = get_gif('taunt')
+
+            #send response
+            this_message = "{}, {} taunted you {}".format(opponentname,sender,gifurl)
             message.send(this_message)
 
         @listen_to('^predict (.*) (.*)',re.IGNORECASE)
