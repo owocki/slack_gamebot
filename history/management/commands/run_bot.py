@@ -12,13 +12,13 @@ class Command(BaseCommand):
         from slackbot.bot import listen_to
         from slackbot.bot import Bot
         import re 
+        begin_elo_at = 1000
 
         def _get_elo(gamename):
             #get games from ORM
             games = Game.objects.filter(gamename=gamename).order_by('created_on')
 
             #instantiate rankings object
-            begin_elo_at = 1000
             rankings = {}
             for game in games:
                 rankings[game.winner] = begin_elo_at
@@ -34,6 +34,54 @@ class Command(BaseCommand):
                 rankings[player] = int(round(rankings[player],0))
 
             return rankings
+
+        def _get_elo_graph(gamename):
+            #setup plotly
+            import plotly.plotly as py
+            import plotly.graph_objs as go
+            py.sign_in('slack_gamebot', 'e07cmetnop')
+
+            #get games from ORM
+            games = Game.objects.filter(gamename=gamename).order_by('created_on')
+
+            #instantiate rankings object
+            rankings = {}
+            tracing = {}
+            for game in games:
+                tracing[game.winner] = begin_elo_at
+                tracing[game.loser] = begin_elo_at
+                rankings[game.winner] = begin_elo_at
+                rankings[game.loser] = begin_elo_at
+
+            x_axis = [game.created_on for game in games]
+
+            #setup history object
+            rankings_history = rankings.copy()
+            for player in rankings_history.keys():
+                rankings_history[player] = []
+
+            #build traces
+            for game in games:
+                new_rankings = rate_1vs1(rankings[game.winner],rankings[game.loser])
+                rankings[game.winner] = new_rankings[0]
+                rankings[game.loser] = new_rankings[1]
+                for player in tracing.keys():
+                    rankings_history[player] =  rankings_history[player] + [rankings[player]]
+
+            traces = []
+            # Create traces
+            for player in tracing.keys():
+                traces = traces + [ go.Scatter(
+                    x = x_axis,
+                    y = rankings_history[player],
+                    mode = 'lines',
+                    name = player
+                ) ]
+
+            # Plot and embed in ipython notebook!
+            url = py.plot(traces, filename='python-datetime') + ".png"
+
+            return url
 
         def _get_user_username(message,opponentname):
             if opponentname.find('>') > 0:
@@ -101,7 +149,7 @@ class Command(BaseCommand):
             stats_by_user = sorted(stats_by_user.items(), key=lambda x: -1 * x[1]['elo'])
 
             stats_str = "\n ".join([  " * {}({}): {}/{} ({}%)".format(stats[1]['name'],stats[1]['elo'],stats[1]['wins'],stats[1]['losses'],stats[1]['win_pct'])  for stats in stats_by_user ])
-            stats_str = "Stats for {}: \n\n{}".format(gamename, stats_str)
+            stats_str = "Leaderboard for {}: \n\n{}\n{}".format(gamename, stats_str,_get_elo_graph(gamename))
             message.send(stats_str)
 
         @listen_to('^history (.*)',re.IGNORECASE)

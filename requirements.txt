@@ -1,3 +1,4 @@
 slackbot
 django==1.9
 elo
+plotly
