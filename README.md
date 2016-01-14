@@ -11,14 +11,14 @@ Written in python2/django 1.9
 # How to:
 
 1. Get your slack API token
-    * go to *https://<teamname>.slack.com/apps/manage/custom-integrations*
+    * go to *https://your_teamname.slack.com/apps/manage/custom-integrations*
     * Click *bots*
     * Click *Add Configuration*.
     * Choose a username (I recommend *gamebot*).  Press "Add Bot Integration" 
     * Copy your bot's API key.
     * Customize your bots picture or name (optional). Press "Save Integration"
 
-2. On command line (replace "<YOUR-API-KEY>" with the API key you copied above):
+2. On command line (replace `<YOUR-API-KEY>` with the API key you copied above):
 
 ```
 git clone https://github.com/owocki/slack_gamebot.git
