@@ -84,7 +84,7 @@ class Command(BaseCommand):
                 ) ]
 
             # Plot and embed in ipython notebook!
-            url = py.plot(traces, filename='python-datetime',auto_open=False) + ".png"
+            url = py.plot(traces, filename='python-datetime',auto_open=False,yTitle='ELO Rankings',title='Leaderboard history for ' + gamename) + ".png"
 
             return url
 
