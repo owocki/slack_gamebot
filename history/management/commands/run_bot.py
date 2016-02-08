@@ -213,8 +213,6 @@ class Command(BaseCommand):
 
         @listen_to('^taunt (.*)',re.IGNORECASE)
         def taunt(message,opponentname):
-            #input sanitization
-            gamename = gamename.strip()
 
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
