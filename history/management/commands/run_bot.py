@@ -122,21 +122,21 @@ class Command(BaseCommand):
         def help(message):
             help_message="I am a gamebot for tracking game statistics.  Here's how to use me: \n\n"+\
                 " _Play_: \n" +\
-                "   `challenge <@opponent> <gamename>` -- challenges @opponent to a friendly game of <gamename> \n" +\
-                "   `accept <@opponent> <gamename>` -- accepts a challenge \n" +\
-                "   `won <@opponent> <gamename>` -- records a win for you against @opponent \n" +\
-                "   `lost <@opponent> <gamename>` -- records a loss for you against @opponent \n" +\
-                "   `predict <@opponent> <gamename>` -- predict the outcome of a game between you and @opponent \n" +\
-                "   `taunt <@opponent> ` -- taunt @opponent \n" +\
+                "    `challenge <@opponent> <gamename>` -- challenges @opponent to a friendly game of <gamename> \n" +\
+                "    `accept <@opponent> <gamename>` -- accepts a challenge \n" +\
+                "    `won <@opponent> <gamename>` -- records a win for you against @opponent \n" +\
+                "    `lost <@opponent> <gamename>` -- records a loss for you against @opponent \n" +\
+                "    `predict <@opponent> <gamename>` -- predict the outcome of a game between you and @opponent \n" +\
+                "    `taunt <@opponent> ` -- taunt @opponent \n\n" +\
+                "    Wins and losses can also be #tagged to record how things went down, e.g. `won @owocki chess #time`. Up to 5 tags can be added.\n\n" +\
                 " _Stats_: \n" +\
-                "   `gamebot leaderboard <gamename>` -- displays the leaderboard for <gamename>\n" +\
-                "   `gamebot history <gamename>` -- displays history for <gamename>\n" +\
+                "    `gamebot leaderboard <gamename>` -- displays the leaderboard for <gamename>\n" +\
+                "    `gamebot history <gamename>` -- displays history for <gamename>\n\n" +\
                 " _About_: \n" +\
-                "   `gamebot list-games` -- lists all game types that I'm keeping track of\n" +\
-                "   `gamebot list-tags <gamename>` -- lists all tags associated with a specific <gamename>\n" +\
-                "   `gamebot help` -- displays help menu (this thing)\n" +\
-                "   `gamebot version` -- displays my software version\n" +\
-                "\n" +\
+                "    `gamebot list-games` -- lists all game types that I'm keeping track of\n" +\
+                "    `gamebot list-tags <gamename>` -- lists all tags associated with a specific <gamename>\n" +\
+                "    `gamebot help` -- displays help menu (this thing)\n" +\
+                "    `gamebot version` -- displays my software version\n\n" +\
                 " You may also use the handy shortcut `gb <command>`, if you're too tired from being a champion to type `gamebot`" +\
                 " " 
             message.reply(help_message)
@@ -146,8 +146,9 @@ class Command(BaseCommand):
         @listen_to('^gamebot version', re.IGNORECASE)
         @listen_to('^gb version', re.IGNORECASE)
         def version(message):
-            help_message="Version 0.2 \n\n"+\
+            help_message="Version 0.4 \n\n"+\
                 " Version history \n" +\
+                " * `0.4` -- #tags for games, more commands, cleanup output \n" +\
                 " * `0.3` -- new gifs, strip() gamename input \n" +\
                 " * `0.2` -- ELO, leaderboards, plotly graphs\n" +\
                 " * `0.1` -- MVP \n" +\
@@ -314,9 +315,21 @@ class Command(BaseCommand):
             gamename = arg[2]
             #input sanitization
             gamename = gamename.strip()
-            # Ignore 'games' that are actually tags
-            if "#" in gamename:
-                return
+            if " " in opponentname:
+                if "#" not in gamename:
+                    strings = opponentname.split(" ")
+                    if len(strings) > 5:
+                        message.send("That message is too long; I can't quite parse it :confused:")
+                        return
+                    tags = ""
+                    for x in range(2, len(strings)):
+                        tags += "#" + strings[x] + " "
+                    tags += "#" + gamename
+                    message.reply("Did you mean `won {} {} {}`? I'm a bit confused...".format(strings[0], strings[1], tags))
+                    return 
+                # Ignore 'games' that are actually tags
+                if "#" in gamename:
+                    return
 
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
@@ -356,9 +369,21 @@ class Command(BaseCommand):
             gamename = arg[2]
             #input sanitization
             gamename = gamename.strip()
-            # Ignore 'games' that are actually tags
-            if "#" in gamename:
-                return
+            if " " in opponentname:
+                if "#" not in gamename:
+                    strings = opponentname.split(" ")
+                    if len(strings) > 5:
+                        message.send("That message is too long; I can't quite parse it :confused:")
+                        return
+                    tags = ""
+                    for x in range(2, len(strings)):
+                        tags += "#" + strings[x] + " "
+                    tags += "#" + gamename
+                    message.reply("Did you mean `lost {} {} {}`? I'm a bit confused...".format(strings[0], strings[1], tags))
+                    return 
+                # Ignore 'games' that are actually tags
+                if "#" in gamename:
+                    return
 
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
             opponentname = _get_user_username(message,opponentname)
