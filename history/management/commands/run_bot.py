@@ -117,6 +117,7 @@ class Command(BaseCommand):
 
         @listen_to('^help', re.IGNORECASE)
         @listen_to('^gamebot help', re.IGNORECASE)
+        @listen_to('^gb help', re.IGNORECASE)
         def help(message):
             help_message="I am a gamebot for tracking game statistics.  Here's how to use me: \n\n"+\
                 " _Play_: \n" +\
@@ -134,12 +135,15 @@ class Command(BaseCommand):
                 "   `gamebot list-tags <gamename>` -- lists all tags associated with a specific <gamename>\n" +\
                 "   `gamebot help` -- displays help menu (this thing)\n" +\
                 "   `gamebot version` -- displays my software version\n" +\
+                "\n" +\
+                " You may also use the handy shortcut `gb <command>`, if you're too tired from being a champion to type `gamebot`" +\
                 " " 
             message.reply(help_message)
 
 
         @listen_to('^version', re.IGNORECASE)
         @listen_to('^gamebot version', re.IGNORECASE)
+        @listen_to('^gb version', re.IGNORECASE)
         def version(message):
             help_message="Version 0.2 \n\n"+\
                 " Version history \n" +\
@@ -150,6 +154,7 @@ class Command(BaseCommand):
             message.reply(help_message)
 
         @listen_to('^gamebot leaderboard (.*)',re.IGNORECASE)
+        @listen_to('^gb leaderboard (.*)', re.IGNORECASE)
         @listen_to('^leaderboard (.*)',re.IGNORECASE)
         def leaderboard(message,gamename):
             #input sanitization
@@ -184,6 +189,7 @@ class Command(BaseCommand):
 
         @listen_to('^history (.*)',re.IGNORECASE)
         @listen_to('^gamebot history (.*)',re.IGNORECASE)
+        @listen_to('^gb history (.*)',re.IGNORECASE)
         def history(message,gamename):
             #input sanitization
             gamename = gamename.strip()
@@ -359,6 +365,7 @@ class Command(BaseCommand):
 
 
         @listen_to('^gamebot list-games$',re.IGNORECASE)
+        @listen_to('^gb list-games$',re.IGNORECASE)
         def listGames(message):
             message.send("Here are the games that I'm keeping track of:")
             list_message = ""
@@ -368,6 +375,7 @@ class Command(BaseCommand):
 
 
         @listen_to('^gamebot list-tags (.*)$',re.IGNORECASE)
+        @listen_to('^gb list-tags (.*)$',re.IGNORECASE)
         def listTags(message,gamename):
             gamename = gamename.strip()
             if not Game.objects.filter(gamename=gamename).count():
@@ -395,6 +403,9 @@ class Command(BaseCommand):
         @listen_to('^gamebot stats$',re.IGNORECASE)
         @listen_to('^gamebot history$',re.IGNORECASE)
         @listen_to('^gamebot list-tags$', re.IGNORECASE)
+        @listen_to('^gb stats$',re.IGNORECASE)
+        @listen_to('^gb history$',re.IGNORECASE)
+        @listen_to('^gb list-tags$', re.IGNORECASE)
         def error_history(message):
             message.reply('Please specify a gametype.')
 
