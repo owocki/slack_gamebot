@@ -130,7 +130,7 @@ class Command(BaseCommand):
                 "   `gamebot leaderboard <gamename>` -- displays the leaderboard for <gamename>\n" +\
                 "   `gamebot history <gamename>` -- displays history for <gamename>\n" +\
                 " _About_: \n" +\
-                "   `gamebot list` -- lists all game types that I'm keeping track of\n" +\
+                "   `gamebot list-games` -- lists all game types that I'm keeping track of\n" +\
                 "   `gamebot help` -- displays help menu (this thing)\n" +\
                 "   `gamebot version` -- displays my software version\n" +\
                 " " 
@@ -314,8 +314,8 @@ class Command(BaseCommand):
                 message.send(":arrow_up: {0}'s new elo: {1}\n:arrow_down: {2}'s new elo: {3}\n".format(opponentname, elo_rankings[opponentname], sender, elo_rankings[sender]))
 
 
-        @listen_to('^gamebot list$',re.IGNORECASE)
-        def list(message):
+        @listen_to('^gamebot list-games$',re.IGNORECASE)
+        def listGames(message):
             message.send("Here are the games that I'm keeping track of:")
             list_message = ""
             for name in Game.objects.values_list('gamename', flat=True).distinct():
