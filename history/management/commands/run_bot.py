@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from history.models import Game, Tag
 from datetime import datetime
+from collections import Counter
 from elo import rate_1vs1
 
 
@@ -251,7 +252,12 @@ class Command(BaseCommand):
             stats_by_user = {}
 
             stats_for_sender = { 'wins' : 0, 'losses': 0, 'total': 0 }
+            list_tags = []
             for game in games:
+                tags = Tag.objects.filter(game=game).values_list('tag', flat=True)
+                if len(tags) > 0:
+                    for tag in Tag.objects.filter(game=game).values_list('tag', flat=True):
+                        list_tags.append(tag)
                 if game.winner == sender:
                     stats_for_sender['wins'] = stats_for_sender['wins'] + 1 
                     stats_for_sender['total'] = stats_for_sender['total'] + 1 
@@ -259,10 +265,19 @@ class Command(BaseCommand):
                     stats_for_sender['losses'] = stats_for_sender['losses'] + 1 
                     stats_for_sender['total'] = stats_for_sender['total'] + 1 
 
-            #send response
-            win_pct = round(stats_for_sender['wins'] * 1.0 / stats_for_sender['total'],2)*100
-            this_message = "{} total {} games played between {} vs {}.  {} is {}% likely to win next game".format(stats_for_sender['total'],gamename,sender,opponentname,sender,win_pct)
-            message.send(this_message)
+            win_pct = round(stats_for_sender['wins'] * 1.0 / stats_for_sender['total'],2)*100  
+            common_tag = Counter(list_tags).most_common()
+            if not common_tag:
+                this_message = "{} total {} games played between {} and {}. \n{} is {}% likely to win next game"\
+                               .format(stats_for_sender['total'],gamename,sender,opponentname,sender,win_pct)
+                message.send(this_message)
+            else:                
+                most_probable_tag = common_tag[0][0]
+                #send response
+                this_message = "{} total {} games played between {} and {}. \n{} is {}% likely to win next game by #{}"\
+                               .format(stats_for_sender['total'],gamename,sender,opponentname,sender,win_pct,most_probable_tag)
+                message.send(this_message)
+
 
         @listen_to('^accept (.*) (.*)',re.IGNORECASE)
         def accepted(message,opponentname,gamename):
@@ -382,19 +397,21 @@ class Command(BaseCommand):
                 message.send("You haven't played any games of {} yet", gamename)
                 return
 
-            message.send("Here are the tags currently used in {}:".format(gamename))
-
             # Kind of messy, but it works!
             list_tags = []
             list_message = ""
             games = Game.objects.filter(gamename=gamename)
             for game in games:
                 for tag in Tag.objects.filter(game=game).values_list('tag', flat=True).distinct():
-                    list_tags.append(tag)                    
+                    list_tags.append(tag)
             for name in list(set(list_tags)):
                 list_message += "#{}\n".format(name)
 
-            message.send(list_message)
+            if not list_tags:
+                message.send("There are no tagged games of {} :neutral_face:".format(gamename))
+            else:
+                message.send("Here are the tags currently used in {}:".format(gamename))
+                message.send(list_message)
 
 
         #validation helpers
