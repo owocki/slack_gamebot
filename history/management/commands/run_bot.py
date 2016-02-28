@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
-from history.models import Game
+from history.models import Game, Tag
 from datetime import datetime
 from elo import rate_1vs1
 
@@ -273,18 +273,40 @@ class Command(BaseCommand):
             this_message = "{}, {} accepted your challenge to {} \n\n{}".format(opponentname,sender,gamename,gifurl)
             message.send(this_message)
 
-        @listen_to('^won (.*) (.*)',re.IGNORECASE)
-        @listen_to('^win (.*) (.*)',re.IGNORECASE)
-        def won(message,opponentname,gamename):
+
+        @listen_to('won (.*) (.*)$',re.IGNORECASE)
+        @listen_to('won (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('won (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('won (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('won (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('won (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('win (.*) (.*)$',re.IGNORECASE)
+        @listen_to('win (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('win (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('win (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('win (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('win (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        def won(*arg):
+            message = arg[0]
+            opponentname = arg[1]
+            gamename = arg[2]
             #input sanitization
             gamename = gamename.strip()
+            # Ignore 'games' that are actually tags
+            if "#" in gamename:
+                return
 
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
             opponentname = _get_user_username(message,opponentname)
 
             #body
-            Game.objects.create(winner=sender,loser=opponentname,gamename=gamename,created_on=datetime.now(),modified_on=datetime.now())
+            newgame = Game.objects.create(winner=sender,loser=opponentname,gamename=gamename,created_on=datetime.now(),modified_on=datetime.now())
+
+            # Create tags for game
+            if len(arg) > 3:
+                for x in range(3, len(arg)):
+                    Tag.objects.create(tag=arg[x], game=newgame)
 
             #send response
             gifurl = get_gif('winorloss')
@@ -294,17 +316,38 @@ class Command(BaseCommand):
                 message.send(":arrow_up: {0}'s new elo: {1}\n:arrow_down: {2}'s new elo: {3}\n".format(sender, elo_rankings[sender], opponentname, elo_rankings[opponentname]))
 
 
-        @listen_to('^lost (.*) (.*)',re.IGNORECASE)
-        @listen_to('^loss (.*) (.*)',re.IGNORECASE)
-        def loss(message,opponentname,gamename):
+        @listen_to('lost (.*) (.*)$',re.IGNORECASE)
+        @listen_to('lost (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('lost (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('lost (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('lost (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('lost (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('loss (.*) (.*)$',re.IGNORECASE)
+        @listen_to('loss (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('loss (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('loss (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('loss (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('loss (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        def loss(*arg):
+            message = arg[0]
+            opponentname = arg[1]
+            gamename = arg[2]
             #input sanitization
             gamename = gamename.strip()
+            # Ignore 'games' that are actually tags
+            if "#" in gamename:
+                return
 
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
             opponentname = _get_user_username(message,opponentname)
             
             #body
-            Game.objects.create(winner=opponentname,loser=sender,gamename=gamename,created_on=datetime.now(),modified_on=datetime.now())
+            newgame = Game.objects.create(winner=opponentname,loser=sender,gamename=gamename,created_on=datetime.now(),modified_on=datetime.now())
+
+            # Create tags for game
+            if len(arg) > 3:
+                for x in range(3, len(arg)):
+                    Tag.objects.create(tag=arg[x], game=newgame)
 
             #send response
             gifurl = get_gif('winorloss')
