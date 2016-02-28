@@ -131,6 +131,7 @@ class Command(BaseCommand):
                 "   `gamebot history <gamename>` -- displays history for <gamename>\n" +\
                 " _About_: \n" +\
                 "   `gamebot list-games` -- lists all game types that I'm keeping track of\n" +\
+                "   `gamebot list-tags <gamename>` -- lists all tags associated with a specific <gamename>\n" +\
                 "   `gamebot help` -- displays help menu (this thing)\n" +\
                 "   `gamebot version` -- displays my software version\n" +\
                 " " 
@@ -366,11 +367,34 @@ class Command(BaseCommand):
             message.send(list_message)
 
 
+        @listen_to('^gamebot list-tags (.*)$',re.IGNORECASE)
+        def listTags(message,gamename):
+            gamename = gamename.strip()
+            if not Game.objects.filter(gamename=gamename).count():
+                message.send("You haven't played any games of {} yet", gamename)
+                return
+
+            message.send("Here are the tags currently used in {}:".format(gamename))
+
+            # Kind of messy, but it works!
+            list_tags = []
+            list_message = ""
+            games = Game.objects.filter(gamename=gamename)
+            for game in games:
+                for tag in Tag.objects.filter(game=game).values_list('tag', flat=True).distinct():
+                    list_tags.append(tag)                    
+            for name in list(set(list_tags)):
+                list_message += "#{}\n".format(name)
+
+            message.send(list_message)
+
+
         #validation helpers
         @listen_to('^stats$',re.IGNORECASE)
         @listen_to('^history$',re.IGNORECASE)
         @listen_to('^gamebot stats$',re.IGNORECASE)
         @listen_to('^gamebot history$',re.IGNORECASE)
+        @listen_to('^gamebot list-tags$', re.IGNORECASE)
         def error_history(message):
             message.reply('Please specify a gametype.')
 
