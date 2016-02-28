@@ -119,19 +119,20 @@ class Command(BaseCommand):
         @listen_to('^gamebot help', re.IGNORECASE)
         def help(message):
             help_message="I am a gamebot for tracking game statistics.  Here's how to use me: \n\n"+\
-                " Playing: \n" +\
-                " * `challenge <@opponent> <gamename>` -- challenges an opponent \n" +\
-                " * `accept <@opponent> <gamename>` -- accepts challenge \n" +\
-                " * `won <@opponent> <gamename>` -- records a win against @opponent \n" +\
-                " * `lost <@opponent> <gamename>` -- records a loss against @opponent \n" +\
-                " * `predict <@opponent> <gamename>` -- predict the outcome of a game against @opponent \n" +\
-                " * `taunt <@opponent> ` -- taunt @opponent \n" +\
-                " Stats: \n" +\
-                " * `gamebot leaderboard <gamename>` -- displays a leaderboard\n" +\
-                " * `gamebot history <gamename>` -- displays history for game\n" +\
-                " Help: \n" +\
-                " * `gamebot help` -- displays help menu\n" +\
-                " * `gamebot version` -- displays gamebot version\n" +\
+                " _Play_: \n" +\
+                "   `challenge <@opponent> <gamename>` -- challenges @opponent to a friendly game of <gamename> \n" +\
+                "   `accept <@opponent> <gamename>` -- accepts a challenge \n" +\
+                "   `won <@opponent> <gamename>` -- records a win for you against @opponent \n" +\
+                "   `lost <@opponent> <gamename>` -- records a loss for you against @opponent \n" +\
+                "   `predict <@opponent> <gamename>` -- predict the outcome of a game between you and @opponent \n" +\
+                "   `taunt <@opponent> ` -- taunt @opponent \n" +\
+                " _Stats_: \n" +\
+                "   `gamebot leaderboard <gamename>` -- displays the leaderboard for <gamename>\n" +\
+                "   `gamebot history <gamename>` -- displays history for <gamename>\n" +\
+                " _About_: \n" +\
+                "   `gamebot list` -- lists all game types that I'm keeping track of\n" +\
+                "   `gamebot help` -- displays help menu (this thing)\n" +\
+                "   `gamebot version` -- displays my software version\n" +\
                 " " 
             message.reply(help_message)
 
@@ -311,6 +312,16 @@ class Command(BaseCommand):
             if gamename == "chess":
                 elo_rankings = _get_elo(gamename)
                 message.send(":arrow_up: {0}'s new elo: {1}\n:arrow_down: {2}'s new elo: {3}\n".format(opponentname, elo_rankings[opponentname], sender, elo_rankings[sender]))
+
+
+        @listen_to('^gamebot list$',re.IGNORECASE)
+        def list(message):
+            message.send("Here are the games that I'm keeping track of:")
+            list_message = ""
+            for name in Game.objects.values_list('gamename', flat=True).distinct():
+                list_message += "- {}\n".format(name)
+            message.send(list_message)
+
 
         #validation helpers
         @listen_to('^stats$',re.IGNORECASE)
