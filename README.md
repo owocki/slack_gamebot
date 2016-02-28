@@ -24,7 +24,7 @@ Written in python2/django 1.9
 git clone https://github.com/owocki/slack_gamebot.git
 cd slack_gamebot
 echo API_TOKEN = "<YOUR-API-KEY>" > slackbot_settings.py
-pip install -r requirements.txt
+pip install --ignore-installed -r requirements.txt
 ./manage.py migrate
 ./manage.py run_bot
 ```

@@ -288,6 +288,10 @@ class Command(BaseCommand):
             #send response
             gifurl = get_gif('winorloss')
             message.send("#win recorded \n {}".format(gifurl))
+            if gamename == "chess":
+                elo_rankings = _get_elo(gamename)
+                message.send(":arrow_up: {0}'s new elo: {1}\n:arrow_down: {2}'s new elo: {3}\n".format(sender, elo_rankings[sender], opponentname, elo_rankings[opponentname]))
+
 
         @listen_to('^lost (.*) (.*)',re.IGNORECASE)
         @listen_to('^loss (.*) (.*)',re.IGNORECASE)
@@ -304,6 +308,9 @@ class Command(BaseCommand):
             #send response
             gifurl = get_gif('winorloss')
             message.send("#loss recorded \n {}".format(gifurl))
+            if gamename == "chess":
+                elo_rankings = _get_elo(gamename)
+                message.send(":arrow_up: {0}'s new elo: {1}\n:arrow_down: {2}'s new elo: {3}\n".format(opponentname, elo_rankings[opponentname], sender, elo_rankings[sender]))
 
         #validation helpers
         @listen_to('^stats$',re.IGNORECASE)
