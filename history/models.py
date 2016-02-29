@@ -10,4 +10,18 @@ class Game(models.Model):
     modified_on = models.DateTimeField('modified_on')
 
     def __str__(self):
-        return '{} beat {} at {} on {}'.format(self.winner,self.loser,self.gamename,self.created_on)
+        list_tags = []
+        list_message = ""
+        for tag in Tag.objects.filter(game=self).values_list('tag', flat=True).distinct():
+            list_tags.append(tag)                    
+        for name in list(set(list_tags)):
+            list_message += "#{} ".format(name)
+        return '{} beat {} at {} at {} {}'.format(self.winner,self.loser,self.gamename,self.created_on.strftime('%T, %d %b %Y'), list_message)
+
+
+class Tag(models.Model):
+    tag = models.CharField(max_length=200)
+    game = models.ForeignKey(Game)
+
+    def __str__(self):
+        return '{} in {}'.format(self.tag, self.game.gamename)

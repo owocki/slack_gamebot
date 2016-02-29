@@ -1,7 +1,8 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
-from history.models import Game
+from history.models import Game, Tag
 from datetime import datetime
+from collections import Counter
 from elo import rate_1vs1
 
 
@@ -117,30 +118,37 @@ class Command(BaseCommand):
 
         @listen_to('^help', re.IGNORECASE)
         @listen_to('^gamebot help', re.IGNORECASE)
+        @listen_to('^gb help', re.IGNORECASE)
         def help(message):
-            help_message="I am a gamebot for tracking game statistics.  Here's how to use me: \n\n"+\
-                " Playing: \n" +\
-                " * `challenge <@opponent> <gamename>` -- challenges an opponent \n" +\
-                " * `accept <@opponent> <gamename>` -- accepts challenge \n" +\
-                " * `won <@opponent> <gamename>` -- records a win against @opponent \n" +\
-                " * `lost <@opponent> <gamename>` -- records a loss against @opponent \n" +\
-                " * `predict <@opponent> <gamename>` -- predict the outcome of a game against @opponent \n" +\
-                " * `taunt <@opponent> ` -- taunt @opponent \n" +\
-                " Stats: \n" +\
-                " * `gamebot leaderboard <gamename>` -- displays a leaderboard\n" +\
-                " * `gamebot history <gamename>` -- displays history for game\n" +\
-                " Help: \n" +\
-                " * `gamebot help` -- displays help menu\n" +\
-                " * `gamebot version` -- displays gamebot version\n" +\
+            help_message="Hello! I am a gamebot for tracking game statistics.  Here's how to use me: \n\n"+\
+                " _Play_: \n" +\
+                "    `challenge <@opponent> <gamename>` -- challenges @opponent to a friendly game of <gamename> \n" +\
+                "    `accept <@opponent> <gamename>` -- accepts a challenge \n" +\
+                "    `won <@opponent> <gamename>` -- records a win for you against @opponent \n" +\
+                "    `lost <@opponent> <gamename>` -- records a loss for you against @opponent \n" +\
+                "    `predict <@opponent> <gamename>` -- predict the outcome of a game between you and @opponent \n" +\
+                "    `taunt <@opponent> ` -- taunt @opponent \n\n" +\
+                "    Wins and losses can also be #tagged to record how things went down, e.g. `won @owocki chess #time`. Up to 5 tags can be added.\n\n" +\
+                " _Stats_: \n" +\
+                "    `gamebot leaderboard <gamename>` -- displays the leaderboard for <gamename>\n" +\
+                "    `gamebot history <gamename>` -- displays history for <gamename>\n\n" +\
+                " _About_: \n" +\
+                "    `gamebot list-games` -- lists all game types that I'm keeping track of\n" +\
+                "    `gamebot list-tags <gamename>` -- lists all tags associated with a specific <gamename>\n" +\
+                "    `gamebot help` -- displays help menu (this thing)\n" +\
+                "    `gamebot version` -- displays my software version\n\n" +\
+                " You may also use the handy shortcut `gb <command>`, if you're too tired from being a champion to type `gamebot`" +\
                 " " 
-            message.reply(help_message)
+            message.send(help_message)
 
 
         @listen_to('^version', re.IGNORECASE)
         @listen_to('^gamebot version', re.IGNORECASE)
+        @listen_to('^gb version', re.IGNORECASE)
         def version(message):
-            help_message="Version 0.2 \n\n"+\
+            help_message="Version 0.4 \n\n"+\
                 " Version history \n" +\
+                " * `0.4` -- #tags for games, more commands, cleanup output \n" +\
                 " * `0.3` -- new gifs, strip() gamename input \n" +\
                 " * `0.2` -- ELO, leaderboards, plotly graphs\n" +\
                 " * `0.1` -- MVP \n" +\
@@ -148,6 +156,7 @@ class Command(BaseCommand):
             message.reply(help_message)
 
         @listen_to('^gamebot leaderboard (.*)',re.IGNORECASE)
+        @listen_to('^gb leaderboard (.*)', re.IGNORECASE)
         @listen_to('^leaderboard (.*)',re.IGNORECASE)
         def leaderboard(message,gamename):
             #input sanitization
@@ -182,6 +191,7 @@ class Command(BaseCommand):
 
         @listen_to('^history (.*)',re.IGNORECASE)
         @listen_to('^gamebot history (.*)',re.IGNORECASE)
+        @listen_to('^gb history (.*)',re.IGNORECASE)
         def history(message,gamename):
             #input sanitization
             gamename = gamename.strip()
@@ -243,7 +253,12 @@ class Command(BaseCommand):
             stats_by_user = {}
 
             stats_for_sender = { 'wins' : 0, 'losses': 0, 'total': 0 }
+            list_tags = []
             for game in games:
+                tags = Tag.objects.filter(game=game).values_list('tag', flat=True)
+                if len(tags) > 0:
+                    for tag in Tag.objects.filter(game=game).values_list('tag', flat=True):
+                        list_tags.append(tag)
                 if game.winner == sender:
                     stats_for_sender['wins'] = stats_for_sender['wins'] + 1 
                     stats_for_sender['total'] = stats_for_sender['total'] + 1 
@@ -251,10 +266,19 @@ class Command(BaseCommand):
                     stats_for_sender['losses'] = stats_for_sender['losses'] + 1 
                     stats_for_sender['total'] = stats_for_sender['total'] + 1 
 
-            #send response
-            win_pct = round(stats_for_sender['wins'] * 1.0 / stats_for_sender['total'],2)*100
-            this_message = "{} total {} games played between {} vs {}.  {} is {}% likely to win next game".format(stats_for_sender['total'],gamename,sender,opponentname,sender,win_pct)
-            message.send(this_message)
+            win_pct = round(stats_for_sender['wins'] * 1.0 / stats_for_sender['total'],2)*100  
+            common_tag = Counter(list_tags).most_common()
+            if not common_tag:
+                this_message = "{} total {} games played between {} and {}. \n{} is {}% likely to win next game"\
+                               .format(stats_for_sender['total'],gamename,sender,opponentname,sender,win_pct)
+                message.send(this_message)
+            else:                
+                most_probable_tag = common_tag[0][0]
+                #send response
+                this_message = "{} total {} games played between {} and {}. \n{} is {}% likely to win next game by #{}"\
+                               .format(stats_for_sender['total'],gamename,sender,opponentname,sender,win_pct,most_probable_tag)
+                message.send(this_message)
+
 
         @listen_to('^accept (.*) (.*)',re.IGNORECASE)
         def accepted(message,opponentname,gamename):
@@ -272,44 +296,177 @@ class Command(BaseCommand):
             this_message = "{}, {} accepted your challenge to {} \n\n{}".format(opponentname,sender,gamename,gifurl)
             message.send(this_message)
 
-        @listen_to('^won (.*) (.*)',re.IGNORECASE)
-        @listen_to('^win (.*) (.*)',re.IGNORECASE)
-        def won(message,opponentname,gamename):
+
+        def parseTags(message, opponentname, gamename):
+            if " " in opponentname:
+                if "#" not in gamename:
+                    strings = opponentname.split(" ")
+                    if len(strings) > 5:
+                        message.send("That message is too long; I can't quite parse it :confused:")
+                        return False
+                    tags = ""
+                    for x in range(2, len(strings)):
+                        tags += "#" + strings[x] + " "
+                    tags += "#" + gamename
+                    message.reply("Did you mean `won {} {} {}`? I'm a bit confused...".format(strings[0], strings[1], tags))
+                    return False
+                # Ignore 'games' that are actually tags
+                if "#" in gamename:
+                    return False
+            return True                
+
+
+        @listen_to('won (.*) (.*)$',re.IGNORECASE)
+        @listen_to('won (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('won (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('won (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('won (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('won (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('win (.*) (.*)$',re.IGNORECASE)
+        @listen_to('win (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('win (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('win (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('win (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('win (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        def won(*arg):
+            message = arg[0]
+            opponentname = arg[1]
+            gamename = arg[2]
             #input sanitization
             gamename = gamename.strip()
+            if parseTags(message, opponentname, gamename) == False:
+                return 
 
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
             opponentname = _get_user_username(message,opponentname)
 
+            winner_old_elo = 1000
+            loser_old_elo = 1000
+            if gamename == "chess":
+                elo_rankings = _get_elo(gamename)
+                if sender in elo_rankings:
+                    winner_old_elo = elo_rankings[sender]
+                if opponentname in elo_rankings:
+                    loser_old_elo = elo_rankings[opponentname]
+
             #body
-            Game.objects.create(winner=sender,loser=opponentname,gamename=gamename,created_on=datetime.now(),modified_on=datetime.now())
+            newgame = Game.objects.create(winner=sender,loser=opponentname,gamename=gamename,created_on=datetime.now(),modified_on=datetime.now())
+
+            # Create tags for game
+            if len(arg) > 3:
+                for x in range(3, len(arg)):
+                    Tag.objects.create(tag=arg[x], game=newgame)
 
             #send response
             gifurl = get_gif('winorloss')
             message.send("#win recorded \n {}".format(gifurl))
+            if gamename == "chess":
+                elo_rankings = _get_elo(gamename)
+                winner_elo_diff = elo_rankings[sender] - winner_old_elo
+                loser_elo_diff = elo_rankings[opponentname] - loser_old_elo
+                message.send(":arrow_up: {}'s new elo: {} (+{})\n:arrow_down: {}'s new elo: {} ({})\n"\
+                             .format(sender, elo_rankings[sender], winner_elo_diff, \
+                                     opponentname, elo_rankings[opponentname], loser_elo_diff))
 
-        @listen_to('^lost (.*) (.*)',re.IGNORECASE)
-        @listen_to('^loss (.*) (.*)',re.IGNORECASE)
-        def loss(message,opponentname,gamename):
+
+        @listen_to('lost (.*) (.*)$',re.IGNORECASE)
+        @listen_to('lost (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('lost (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('lost (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('lost (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('lost (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('loss (.*) (.*)$',re.IGNORECASE)
+        @listen_to('loss (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('loss (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('loss (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('loss (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('loss (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        def loss(*arg):
+            message = arg[0]
+            opponentname = arg[1]
+            gamename = arg[2]
             #input sanitization
             gamename = gamename.strip()
+            if parseTags(message, opponentname, gamename) == False:
+                return 
 
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
             opponentname = _get_user_username(message,opponentname)
-            
+
+            winner_old_elo = 1000
+            loser_old_elo = 1000
+            if gamename == "chess":
+                elo_rankings = _get_elo(gamename)
+                if sender in elo_rankings:
+                    winner_old_elo = elo_rankings[opponentname]
+                if opponentname in elo_rankings:
+                    loser_old_elo = elo_rankings[sender]
             #body
-            Game.objects.create(winner=opponentname,loser=sender,gamename=gamename,created_on=datetime.now(),modified_on=datetime.now())
+            newgame = Game.objects.create(winner=opponentname,loser=sender,gamename=gamename,created_on=datetime.now(),modified_on=datetime.now())
+
+            # Create tags for game
+            if len(arg) > 3:
+                for x in range(3, len(arg)):
+                    Tag.objects.create(tag=arg[x], game=newgame)
 
             #send response
             gifurl = get_gif('winorloss')
             message.send("#loss recorded \n {}".format(gifurl))
+            if gamename == "chess":
+                elo_rankings = _get_elo(gamename)
+                winner_elo_diff = elo_rankings[opponentname] - winner_old_elo
+                loser_elo_diff = elo_rankings[sender] - loser_old_elo
+                message.send(":arrow_up: {}'s new elo: {} (+{})\n:arrow_down: {}'s new elo: {} ({})\n"\
+                             .format(opponentname, elo_rankings[opponentname], winner_elo_diff, \
+                                     sender, elo_rankings[sender], loser_elo_diff))
+
+
+        @listen_to('^gamebot list-games$',re.IGNORECASE)
+        @listen_to('^gb list-games$',re.IGNORECASE)
+        def listGames(message):
+            list_message = ""
+            for name in Game.objects.values_list('gamename', flat=True).distinct():
+                list_message += "- {}\n".format(name)
+
+            if list_message == "": 
+                message.send("You haven't played anything yet...")
+            else:
+                message.send("Here are the games that I'm keeping track of:")
+                message.send(list_message)
+
+
+        @listen_to('^gamebot list-tags (.*)$',re.IGNORECASE)
+        @listen_to('^gb list-tags (.*)$',re.IGNORECASE)
+        def listTags(message,gamename):
+            gamename = gamename.strip()
+            if Game.objects.filter(gamename=gamename).count() == 0:
+                message.send("You haven't played any games of {} yet :anguished:".format(gamename))
+                return
+
+            # Kind of messy, but it works!
+            list_tags = []
+            list_message = ""
+            games = Game.objects.filter(gamename=gamename)
+            for game in games:
+                for tag in Tag.objects.filter(game=game).values_list('tag', flat=True).distinct():
+                    list_tags.append(tag)
+            for name in list(set(list_tags)):
+                list_message += "#{}\n".format(name)
+
+            if not list_tags:
+                message.send("There are no tagged games of {} :neutral_face:".format(gamename))
+            else:
+                message.send("Here are the tags currently used in {}:".format(gamename))
+                message.send(list_message)
+
 
         #validation helpers
-        @listen_to('^stats$',re.IGNORECASE)
         @listen_to('^history$',re.IGNORECASE)
-        @listen_to('^gamebot stats$',re.IGNORECASE)
         @listen_to('^gamebot history$',re.IGNORECASE)
+        @listen_to('^gamebot list-tags$', re.IGNORECASE)
+        @listen_to('^gb history$',re.IGNORECASE)
+        @listen_to('^gb list-tags$', re.IGNORECASE)
         def error_history(message):
             message.reply('Please specify a gametype.')
 
