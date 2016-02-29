@@ -359,8 +359,7 @@ class Command(BaseCommand):
                     Tag.objects.create(tag=arg[x], game=newgame)
 
             #send response
-            gifurl = get_gif('winorloss')
-            message.send("#win recorded \n {}".format(gifurl))
+            message.send("#win recorded \n")
             if gamename == "chess":
                 elo_rankings = _get_elo(gamename)
                 winner_elo_diff = elo_rankings[sender] - winner_old_elo
@@ -411,8 +410,7 @@ class Command(BaseCommand):
                     Tag.objects.create(tag=arg[x], game=newgame)
 
             #send response
-            gifurl = get_gif('winorloss')
-            message.send("#loss recorded \n {}".format(gifurl))
+            message.send("#loss recorded \n")
             if gamename == "chess":
                 elo_rankings = _get_elo(gamename)
                 winner_elo_diff = elo_rankings[opponentname] - winner_old_elo
