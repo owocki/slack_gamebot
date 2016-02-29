@@ -341,12 +341,15 @@ class Command(BaseCommand):
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
             opponentname = _get_user_username(message,opponentname)
 
-            winner_old_elo = 0
-            loser_old_elo = 0
+            winner_old_elo = 1000
+            loser_old_elo = 1000
             if gamename == "chess":
                 elo_rankings = _get_elo(gamename)
-                winner_old_elo = elo_rankings[sender]
-                loser_old_elo = elo_rankings[opponentname]
+                if sender in elo_rankings:
+                    winner_old_elo = elo_rankings[sender]
+                if opponentname in elo_rankings:
+                    loser_old_elo = elo_rankings[opponentname]
+
             #body
             newgame = Game.objects.create(winner=sender,loser=opponentname,gamename=gamename,created_on=datetime.now(),modified_on=datetime.now())
 
@@ -391,12 +394,14 @@ class Command(BaseCommand):
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
             opponentname = _get_user_username(message,opponentname)
 
-            winner_old_elo = 0
-            loser_old_elo = 0
+            winner_old_elo = 1000
+            loser_old_elo = 1000
             if gamename == "chess":
                 elo_rankings = _get_elo(gamename)
-                winner_old_elo = elo_rankings[opponentname]
-                loser_old_elo = elo_rankings[sender]
+                if sender in elo_rankings:
+                    winner_old_elo = elo_rankings[opponentname]
+                if opponentname in elo_rankings:
+                    loser_old_elo = elo_rankings[sender]
             #body
             newgame = Game.objects.create(winner=opponentname,loser=sender,gamename=gamename,created_on=datetime.now(),modified_on=datetime.now())
 
