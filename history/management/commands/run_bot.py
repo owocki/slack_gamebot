@@ -440,8 +440,8 @@ class Command(BaseCommand):
         @listen_to('^gb list-tags (.*)$',re.IGNORECASE)
         def listTags(message,gamename):
             gamename = gamename.strip()
-            if not Game.objects.filter(gamename=gamename).count():
-                message.send("You haven't played any games of {} yet", gamename)
+            if Game.objects.filter(gamename=gamename).count() == 0:
+                message.send("You haven't played any games of {} yet :anguished:".format(gamename))
                 return
 
             # Kind of messy, but it works!
