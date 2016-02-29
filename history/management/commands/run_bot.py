@@ -297,6 +297,25 @@ class Command(BaseCommand):
             message.send(this_message)
 
 
+        def parseTags(message, opponentname, gamename):
+            if " " in opponentname:
+                if "#" not in gamename:
+                    strings = opponentname.split(" ")
+                    if len(strings) > 5:
+                        message.send("That message is too long; I can't quite parse it :confused:")
+                        return False
+                    tags = ""
+                    for x in range(2, len(strings)):
+                        tags += "#" + strings[x] + " "
+                    tags += "#" + gamename
+                    message.reply("Did you mean `won {} {} {}`? I'm a bit confused...".format(strings[0], strings[1], tags))
+                    return False
+                # Ignore 'games' that are actually tags
+                if "#" in gamename:
+                    return False
+            return True                
+
+
         @listen_to('won (.*) (.*)$',re.IGNORECASE)
         @listen_to('won (.*) (.*) #(.*)$',re.IGNORECASE)        
         @listen_to('won (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
@@ -315,26 +334,19 @@ class Command(BaseCommand):
             gamename = arg[2]
             #input sanitization
             gamename = gamename.strip()
-            if " " in opponentname:
-                if "#" not in gamename:
-                    strings = opponentname.split(" ")
-                    if len(strings) > 5:
-                        message.send("That message is too long; I can't quite parse it :confused:")
-                        return
-                    tags = ""
-                    for x in range(2, len(strings)):
-                        tags += "#" + strings[x] + " "
-                    tags += "#" + gamename
-                    message.reply("Did you mean `won {} {} {}`? I'm a bit confused...".format(strings[0], strings[1], tags))
-                    return 
-                # Ignore 'games' that are actually tags
-                if "#" in gamename:
-                    return
+            if parseTags(message, opponentname, gamename) == False:
+                return 
 
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
             opponentname = _get_user_username(message,opponentname)
 
+            winner_old_elo = 0
+            loser_old_elo = 0
+            if gamename == "chess":
+                elo_rankings = _get_elo(gamename)
+                winner_old_elo = elo_rankings[sender]
+                loser_old_elo = elo_rankings[opponentname]
             #body
             newgame = Game.objects.create(winner=sender,loser=opponentname,gamename=gamename,created_on=datetime.now(),modified_on=datetime.now())
 
@@ -348,7 +360,11 @@ class Command(BaseCommand):
             message.send("#win recorded \n {}".format(gifurl))
             if gamename == "chess":
                 elo_rankings = _get_elo(gamename)
-                message.send(":arrow_up: {0}'s new elo: {1}\n:arrow_down: {2}'s new elo: {3}\n".format(sender, elo_rankings[sender], opponentname, elo_rankings[opponentname]))
+                winner_elo_diff = elo_rankings[sender] - winner_old_elo
+                loser_elo_diff = elo_rankings[opponentname] - loser_old_elo
+                message.send(":arrow_up: {}'s new elo: {} (+{})\n:arrow_down: {}'s new elo: {} ({})\n"\
+                             .format(sender, elo_rankings[sender], winner_elo_diff, \
+                                     opponentname, elo_rankings[opponentname], loser_elo_diff))
 
 
         @listen_to('lost (.*) (.*)$',re.IGNORECASE)
@@ -369,25 +385,18 @@ class Command(BaseCommand):
             gamename = arg[2]
             #input sanitization
             gamename = gamename.strip()
-            if " " in opponentname:
-                if "#" not in gamename:
-                    strings = opponentname.split(" ")
-                    if len(strings) > 5:
-                        message.send("That message is too long; I can't quite parse it :confused:")
-                        return
-                    tags = ""
-                    for x in range(2, len(strings)):
-                        tags += "#" + strings[x] + " "
-                    tags += "#" + gamename
-                    message.reply("Did you mean `lost {} {} {}`? I'm a bit confused...".format(strings[0], strings[1], tags))
-                    return 
-                # Ignore 'games' that are actually tags
-                if "#" in gamename:
-                    return
+            if parseTags(message, opponentname, gamename) == False:
+                return 
 
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
             opponentname = _get_user_username(message,opponentname)
-            
+
+            winner_old_elo = 0
+            loser_old_elo = 0
+            if gamename == "chess":
+                elo_rankings = _get_elo(gamename)
+                winner_old_elo = elo_rankings[opponentname]
+                loser_old_elo = elo_rankings[sender]
             #body
             newgame = Game.objects.create(winner=opponentname,loser=sender,gamename=gamename,created_on=datetime.now(),modified_on=datetime.now())
 
@@ -401,7 +410,11 @@ class Command(BaseCommand):
             message.send("#loss recorded \n {}".format(gifurl))
             if gamename == "chess":
                 elo_rankings = _get_elo(gamename)
-                message.send(":arrow_up: {0}'s new elo: {1}\n:arrow_down: {2}'s new elo: {3}\n".format(opponentname, elo_rankings[opponentname], sender, elo_rankings[sender]))
+                winner_elo_diff = elo_rankings[opponentname] - winner_old_elo
+                loser_elo_diff = elo_rankings[sender] - loser_old_elo
+                message.send(":arrow_up: {}'s new elo: {} (+{})\n:arrow_down: {}'s new elo: {} ({})\n"\
+                             .format(opponentname, elo_rankings[opponentname], winner_elo_diff, \
+                                     sender, elo_rankings[sender], loser_elo_diff))
 
 
         @listen_to('^gamebot list-games$',re.IGNORECASE)
