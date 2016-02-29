@@ -120,7 +120,7 @@ class Command(BaseCommand):
         @listen_to('^gamebot help', re.IGNORECASE)
         @listen_to('^gb help', re.IGNORECASE)
         def help(message):
-            help_message="I am a gamebot for tracking game statistics.  Here's how to use me: \n\n"+\
+            help_message="Hello! I am a gamebot for tracking game statistics.  Here's how to use me: \n\n"+\
                 " _Play_: \n" +\
                 "    `challenge <@opponent> <gamename>` -- challenges @opponent to a friendly game of <gamename> \n" +\
                 "    `accept <@opponent> <gamename>` -- accepts a challenge \n" +\
@@ -139,7 +139,7 @@ class Command(BaseCommand):
                 "    `gamebot version` -- displays my software version\n\n" +\
                 " You may also use the handy shortcut `gb <command>`, if you're too tired from being a champion to type `gamebot`" +\
                 " " 
-            message.reply(help_message)
+            message.send(help_message)
 
 
         @listen_to('^version', re.IGNORECASE)
