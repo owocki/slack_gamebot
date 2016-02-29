@@ -425,11 +425,15 @@ class Command(BaseCommand):
         @listen_to('^gamebot list-games$',re.IGNORECASE)
         @listen_to('^gb list-games$',re.IGNORECASE)
         def listGames(message):
-            message.send("Here are the games that I'm keeping track of:")
             list_message = ""
             for name in Game.objects.values_list('gamename', flat=True).distinct():
                 list_message += "- {}\n".format(name)
-            message.send(list_message)
+
+            if list_message == "": 
+                message.send("You haven't played anything yet...")
+            else:
+                message.send("Here are the games that I'm keeping track of:")
+                message.send(list_message)
 
 
         @listen_to('^gamebot list-tags (.*)$',re.IGNORECASE)
@@ -458,12 +462,9 @@ class Command(BaseCommand):
 
 
         #validation helpers
-        @listen_to('^stats$',re.IGNORECASE)
         @listen_to('^history$',re.IGNORECASE)
-        @listen_to('^gamebot stats$',re.IGNORECASE)
         @listen_to('^gamebot history$',re.IGNORECASE)
         @listen_to('^gamebot list-tags$', re.IGNORECASE)
-        @listen_to('^gb stats$',re.IGNORECASE)
         @listen_to('^gb history$',re.IGNORECASE)
         @listen_to('^gb list-tags$', re.IGNORECASE)
         def error_history(message):
