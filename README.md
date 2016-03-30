@@ -32,5 +32,10 @@ pip install --ignore-installed -r requirements.txt
 
 <img src='http://bits.owocki.com/1g2K0G3s450v/Screen%20Recording%202015-12-27%20at%2007.12%20AM.gif' />
 
+## Creates ELO rankings and charts like this:
+
+<img src='http://bits.owocki.com/102w2P0J231M/Image%202016-03-30%20at%2010.13.30%20AM.png' />
+
+
 <!-- Google Analytics --> 
 <img src='https://ga-beacon.appspot.com/UA-1014419-15/owocki/slack_gamebot' style='width:1px; height:1px;' >
