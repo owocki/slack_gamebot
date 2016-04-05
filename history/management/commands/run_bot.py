@@ -1,10 +1,13 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
-from history.models import Game, Tag
-from datetime import datetime
+from history.models import Game, Tag, Season
+from datetime import datetime, date
 from collections import Counter
 from elo import rate_1vs1
+from django.conf import settings
 
+default_start = date(2000, 1, 1)
+trend_size = 30
 
 class Command(BaseCommand):
     help = 'Runs slackbot'
@@ -16,9 +19,9 @@ class Command(BaseCommand):
         import re 
         begin_elo_at = 1000
 
-        def _get_elo(gamename):
+        def _get_elo(gamename,start_date):
             #get games from ORM
-            games = Game.objects.filter(gamename=gamename).order_by('created_on')
+            games = Game.objects.filter(created_on__gt=start_date,gamename=gamename).order_by('created_on')
 
             #instantiate rankings object
             rankings = {}
@@ -37,7 +40,7 @@ class Command(BaseCommand):
 
             return rankings
 
-        def _get_elo_graph(gamename):
+        def _get_elo_graph(gamename,start_date):
             #setup plotly
             import random
             import plotly.plotly as py
@@ -45,7 +48,7 @@ class Command(BaseCommand):
             py.sign_in('slack_gamebot', 'e07cmetnop')
 
             #get games from ORM
-            games = Game.objects.filter(gamename=gamename).order_by('created_on')
+            games = Game.objects.filter(created_on__gt=start_date,gamename=gamename).order_by('created_on')
 
             #instantiate rankings object
             rankings = {}
@@ -130,8 +133,10 @@ class Command(BaseCommand):
                 "    `taunt <@opponent> ` -- taunt @opponent \n\n" +\
                 "    Wins and losses can also be #tagged to record how things went down, e.g. `won @owocki chess #time`. Up to 5 tags can be added.\n\n" +\
                 " _Stats_: \n" +\
-                "    `gamebot leaderboard <gamename>` -- displays the leaderboard for <gamename>\n" +\
+                "    `gamebot leaderboard <gamename>` -- displays this seasons leaderboard for <gamename>\n" +\
+                "    `gamebot alltime leaderboard <gamename>` -- displays the all time leaderboard for <gamename>\n" +\
                 "    `gamebot history <gamename>` -- displays history for <gamename>\n\n" +\
+                "    `gamebot season <gamename>` -- displays season information for <gamename>\n\n" +\
                 " _About_: \n" +\
                 "    `gamebot list-games` -- lists all game types that I'm keeping track of\n" +\
                 "    `gamebot list-tags <gamename>` -- lists all tags associated with a specific <gamename>\n" +\
@@ -155,26 +160,54 @@ class Command(BaseCommand):
                 "More info @ https://github.com/owocki/slack_gamebot " 
             message.reply(help_message)
 
+        def get_active_season(gamename,seasoned):
+            range_start_date = default_start
+
+            try:
+                active_season = Season.objects.get(gamename=gamename,active=True)
+            except Exception as e:
+                active_season = Season.objects.create(gamename=gamename,start_on = range_start_date,active = True)
+                active_season.save()
+
+            if seasoned:
+                range_start_date = active_season.start_on
+            else:
+                active_season = None
+
+            return active_season, range_start_date
+
+        @listen_to('^gamebot alltime leaderboard (.*)',re.IGNORECASE)
+        @listen_to('^gb alltime leaderboard (.*)', re.IGNORECASE)
+        @listen_to('^alltime leaderboard (.*)',re.IGNORECASE)
+        def unseasoned_leaderboard(message,gamename):
+            return _leaderboard(message,gamename,False)
+
         @listen_to('^gamebot leaderboard (.*)',re.IGNORECASE)
         @listen_to('^gb leaderboard (.*)', re.IGNORECASE)
         @listen_to('^leaderboard (.*)',re.IGNORECASE)
-        def leaderboard(message,gamename):
+        def seasoned_leaderboard(message,gamename):
+            return _leaderboard(message,gamename,True)
+
+        def _leaderboard(message,gamename,seasoned=False):
             #input sanitization
-            gamename = gamename.strip()
+            gamename = gamename.strip().lower()
 
             STATS_SIZE_LIMIT = 1000
 
-            if not Game.objects.filter(gamename=gamename).count():
-                message.send("No stats found for this game type.")
+            active_season , range_start_date = get_active_season(gamename,seasoned)
 
-            players = list(set(list(Game.objects.filter(gamename=gamename).values_list('winner',flat=True).distinct()) + list(Game.objects.filter(gamename=gamename).values_list('loser',flat=True).distinct())))
+            games = Game.objects.filter(created_on__gt=range_start_date,gamename=gamename)
+            if not games.count():
+                message.send("No stats found for this game type {}.".format( "this season" if active_season is not None else "" ))
+
+            players = list(set(list(games.values_list('winner',flat=True).distinct()) + list(games.values_list('loser',flat=True).distinct())))
             stats_by_user = {}
-            elo_rankings = _get_elo(gamename)
+            elo_rankings = _get_elo(gamename, range_start_date)
 
             for player in players:
                 stats_by_user[player] = { 'name': player, 'elo': elo_rankings[player], 'wins' : 0, 'losses': 0, 'total': 0 }
 
-            for game in Game.objects.filter(gamename=gamename).order_by('-created_on')[:STATS_SIZE_LIMIT]:
+            for game in games.order_by('-created_on')[:STATS_SIZE_LIMIT]:
                 stats_by_user[game.winner]['wins']+=1
                 stats_by_user[game.winner]['total']+=1
                 stats_by_user[game.loser]['losses']+=1
@@ -185,16 +218,53 @@ class Command(BaseCommand):
 
             stats_by_user = sorted(stats_by_user.items(), key=lambda x: -1 * x[1]['elo'])
 
+            season_str = "All time" if active_season is None else active_season
             stats_str = "\n ".join([  " * {}({}): {}/{} ({}%)".format(stats[1]['name'],stats[1]['elo'],stats[1]['wins'],stats[1]['losses'],stats[1]['win_pct'])  for stats in stats_by_user ])
-            stats_str = "Leaderboard for {}: \n\n{}\n{}".format(gamename, stats_str,_get_elo_graph(gamename))
+            stats_str = "{} leaderboard for {}: \n\n{}\n{}".format(season_str, gamename, stats_str,_get_elo_graph(gamename,range_start_date))
             message.send(stats_str)
+
+        @listen_to('^season (.*)',re.IGNORECASE)
+        @listen_to('^gamebot season (.*)',re.IGNORECASE)
+        @listen_to('^gb season (.*)',re.IGNORECASE)
+        def season(message,gamename):
+            #input sanitization
+            gamename = gamename.strip().lower()
+
+            #close current season
+            active_season, start_on = get_active_season(gamename,True)
+
+            #msg back to users
+            msg_str = "{} is active. \nUse `gamebot end season {}` to end this season.".format(active_season, gamename)
+            message.send(msg_str)
+
+
+        @listen_to('^end season (.*)',re.IGNORECASE)
+        @listen_to('^gamebot end season (.*)',re.IGNORECASE)
+        @listen_to('^gb end season (.*)',re.IGNORECASE)
+        def end_season(message,gamename):
+            #input sanitization
+            gamename = gamename.strip().lower()
+
+            #close current season
+            active_season, start_on = get_active_season(gamename,True)
+            active_season.end_on = datetime.now()
+            active_season.active = False
+            active_season.save()
+
+            #start new season
+            new_season = Season.objects.create(gamename=gamename,start_on = datetime.now(),active=True)
+
+            #msg back to users
+            msg_str = "{} ended.\n\n {} opened".format(active_season,new_season)
+            message.send(msg_str)
+
 
         @listen_to('^history (.*)',re.IGNORECASE)
         @listen_to('^gamebot history (.*)',re.IGNORECASE)
         @listen_to('^gb history (.*)',re.IGNORECASE)
         def history(message,gamename):
             #input sanitization
-            gamename = gamename.strip()
+            gamename = gamename.strip().lower()
 
             HISTORY_SIZE_LIMIT = 10
             history_str = "\n".join(list( [ "* " + str(game) for game in Game.objects.filter(gamename=gamename).order_by('-created_on')[:HISTORY_SIZE_LIMIT] ]  ))
@@ -207,7 +277,7 @@ class Command(BaseCommand):
         @listen_to('^challenge (.*) (.*)',re.IGNORECASE)
         def challenge(message,opponentname,gamename):
              #input sanitization
-            gamename = gamename.strip()
+            gamename = gamename.strip().lower()
 
            #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
@@ -236,22 +306,29 @@ class Command(BaseCommand):
             message.send(this_message)
 
         @listen_to('^predict (.*) (.*)',re.IGNORECASE)
-        def predict(message,opponentname,gamename):
+        def predict(message,opponentname,gamename,seasoned=False):
+            _predict(message,opponentname,gamename,True,False)
+            _predict(message,opponentname,gamename,False,True)
+
+        def _predict(message,opponentname,gamename,seasoned=False,show_trend=False):
             #input sanitization
-            gamename = gamename.strip()
+            gamename = gamename.strip().lower()
 
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
             opponentname = _get_user_username(message,opponentname)
+            active_season , range_start_date = get_active_season(gamename,seasoned)
             
             #body
-            games = list(Game.objects.filter(gamename=gamename,winner=sender,loser=opponentname))+list(Game.objects.filter(gamename=gamename,winner=opponentname,loser=sender)) 
+            games = (Game.objects.filter(created_on__gt=range_start_date,gamename=gamename,winner=sender,loser=opponentname)) | (Game.objects.filter(created_on__gt=range_start_date,gamename=gamename,winner=opponentname,loser=sender)) 
+            games = games.order_by('-created_on')
             if not games:
                 message.send("No {} games found between {} and {}".format(gamename,sender,opponentname))
                 return;
                 
             stats_by_user = {}
 
+            #todo: this could all be done in django querysets
             stats_for_sender = { 'wins' : 0, 'losses': 0, 'total': 0 }
             list_tags = []
             for game in games:
@@ -268,22 +345,40 @@ class Command(BaseCommand):
 
             win_pct = round(stats_for_sender['wins'] * 1.0 / stats_for_sender['total'],2)*100  
             common_tag = Counter(list_tags).most_common()
+            season_str = "*all time*" if active_season is None else "*"+str(active_season)+"*"
+
             if not common_tag:
-                this_message = "{} total {} games played between {} and {}. \n{} is {}% likely to win next game"\
-                               .format(stats_for_sender['total'],gamename,sender,opponentname,sender,win_pct)
-                message.send(this_message)
+                this_message = "{} total {} games played between {} and {} {}. \n{} is {}% likely to win next game"\
+                               .format(stats_for_sender['total'],gamename,sender,opponentname,season_str,sender,win_pct)
             else:                
                 most_probable_tag = common_tag[0][0]
                 #send response
                 this_message = "{} total {} games played between {} and {}. \n{} is {}% likely to win next game by #{}"\
-                               .format(stats_for_sender['total'],gamename,sender,opponentname,sender,win_pct,most_probable_tag)
-                message.send(this_message)
+                               .format(stats_for_sender['total'],gamename,sender,opponentname,season_str,sender,win_pct,most_probable_tag)
+
+            if show_trend:
+                trend = [ "W" if game.winner == sender else "L" for game in games[0:trend_size] ]
+                trend.reverse()
+                trend = "".join(trend)
+                # highlight streaks in trends
+                streak_sizes = range(3,10)
+                streak_sizes.reverse()
+                longest_streak = None
+                for streak_size in streak_sizes:
+                    for streak_char in ["W","L"]:
+                        streak_string = "".join([ streak_char for i in range(0,streak_size) ] )
+                        if streak_string in trend:
+                            if longest_streak is None:
+                                longest_streak = "{}:{}".format(streak_char,streak_size)
+                this_message = this_message + "\nTrend: " + trend + ( ". Longest streak: {}".format(longest_streak) if longest_streak else "" ) 
+
+            message.send(this_message)
 
 
         @listen_to('^accept (.*) (.*)',re.IGNORECASE)
         def accepted(message,opponentname,gamename):
             #input sanitization
-            gamename = gamename.strip()
+            gamename = gamename.strip().lower()
 
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
@@ -332,19 +427,21 @@ class Command(BaseCommand):
             message = arg[0]
             opponentname = arg[1]
             gamename = arg[2]
+
             #input sanitization
-            gamename = gamename.strip()
+            gamename = gamename.strip().lower()
             if parseTags(message, opponentname, gamename) == False:
                 return 
 
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
             opponentname = _get_user_username(message,opponentname)
+            active_season , range_start_date = get_active_season(gamename,True)
 
             winner_old_elo = 1000
             loser_old_elo = 1000
-            if gamename == "chess":
-                elo_rankings = _get_elo(gamename)
+            if gamename in settings.ELO_ENABLED_GAMES:
+                elo_rankings = _get_elo(gamename,range_start_date)
                 if sender in elo_rankings:
                     winner_old_elo = elo_rankings[sender]
                 if opponentname in elo_rankings:
@@ -360,11 +457,11 @@ class Command(BaseCommand):
 
             #send response
             message.send("#win recorded \n")
-            if gamename == "chess":
-                elo_rankings = _get_elo(gamename)
+            if gamename in settings.ELO_ENABLED_GAMES:
+                elo_rankings = _get_elo(gamename,range_start_date)
                 winner_elo_diff = elo_rankings[sender] - winner_old_elo
                 loser_elo_diff = elo_rankings[opponentname] - loser_old_elo
-                message.send(":arrow_up: {}'s new elo: {} (+{})\n:arrow_down: {}'s new elo: {} ({})\n"\
+                message.send(":arrow_up: {}'s new seasonal elo: {} (+{})\n:arrow_down: {}'s new seasonal elo: {} ({})\n"\
                              .format(sender, elo_rankings[sender], winner_elo_diff, \
                                      opponentname, elo_rankings[opponentname], loser_elo_diff))
 
@@ -385,18 +482,20 @@ class Command(BaseCommand):
             message = arg[0]
             opponentname = arg[1]
             gamename = arg[2]
+
             #input sanitization
-            gamename = gamename.strip()
+            gamename = gamename.strip().lower()
             if parseTags(message, opponentname, gamename) == False:
                 return 
 
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
             opponentname = _get_user_username(message,opponentname)
+            active_season , range_start_date = get_active_season(gamename,True)
 
             winner_old_elo = 1000
             loser_old_elo = 1000
-            if gamename == "chess":
-                elo_rankings = _get_elo(gamename)
+            if gamename in settings.ELO_ENABLED_GAMES:
+                elo_rankings = _get_elo(gamename,range_start_date)
                 if sender in elo_rankings:
                     winner_old_elo = elo_rankings[opponentname]
                 if opponentname in elo_rankings:
@@ -411,11 +510,11 @@ class Command(BaseCommand):
 
             #send response
             message.send("#loss recorded \n")
-            if gamename == "chess":
-                elo_rankings = _get_elo(gamename)
+            if gamename in settings.ELO_ENABLED_GAMES:
+                elo_rankings = _get_elo(gamename,range_start_date)
                 winner_elo_diff = elo_rankings[opponentname] - winner_old_elo
                 loser_elo_diff = elo_rankings[sender] - loser_old_elo
-                message.send(":arrow_up: {}'s new elo: {} (+{})\n:arrow_down: {}'s new elo: {} ({})\n"\
+                message.send(":arrow_up: {}'s new seasonal elo: {} (+{})\n:arrow_down: {}'s new seasonal elo: {} ({})\n"\
                              .format(opponentname, elo_rankings[opponentname], winner_elo_diff, \
                                      sender, elo_rankings[sender], loser_elo_diff))
 
@@ -437,7 +536,7 @@ class Command(BaseCommand):
         @listen_to('^gamebot list-tags (.*)$',re.IGNORECASE)
         @listen_to('^gb list-tags (.*)$',re.IGNORECASE)
         def listTags(message,gamename):
-            gamename = gamename.strip()
+            gamename = gamename.strip().lower()
             if Game.objects.filter(gamename=gamename).count() == 0:
                 message.send("You haven't played any games of {} yet :anguished:".format(gamename))
                 return
