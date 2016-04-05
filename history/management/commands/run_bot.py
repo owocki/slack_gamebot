@@ -5,6 +5,7 @@ from datetime import datetime, date
 from collections import Counter
 from elo import rate_1vs1
 
+default_start = date(2000, 1, 1)
 
 class Command(BaseCommand):
     help = 'Runs slackbot'
@@ -16,9 +17,9 @@ class Command(BaseCommand):
         import re 
         begin_elo_at = 1000
 
-        def _get_elo(gamename):
+        def _get_elo(gamename,start_date):
             #get games from ORM
-            games = Game.objects.filter(gamename=gamename).order_by('created_on')
+            games = Game.objects.filter(created_on__gt=start_date,gamename=gamename).order_by('created_on')
 
             #instantiate rankings object
             rankings = {}
@@ -37,7 +38,7 @@ class Command(BaseCommand):
 
             return rankings
 
-        def _get_elo_graph(gamename):
+        def _get_elo_graph(gamename,start_date):
             #setup plotly
             import random
             import plotly.plotly as py
@@ -45,7 +46,7 @@ class Command(BaseCommand):
             py.sign_in('slack_gamebot', 'e07cmetnop')
 
             #get games from ORM
-            games = Game.objects.filter(gamename=gamename).order_by('created_on')
+            games = Game.objects.filter(created_on__gt=start_date,gamename=gamename).order_by('created_on')
 
             #instantiate rankings object
             rankings = {}
@@ -158,7 +159,7 @@ class Command(BaseCommand):
             message.reply(help_message)
 
         def get_active_season(gamename,seasoned):
-            range_start_date = date(2000, 1, 1)
+            range_start_date = default_start
 
             try:
                 active_season = Season.objects.get(gamename=gamename,active=True)
@@ -199,7 +200,7 @@ class Command(BaseCommand):
 
             players = list(set(list(games.values_list('winner',flat=True).distinct()) + list(games.values_list('loser',flat=True).distinct())))
             stats_by_user = {}
-            elo_rankings = _get_elo(gamename)
+            elo_rankings = _get_elo(gamename, range_start_date)
 
             for player in players:
                 stats_by_user[player] = { 'name': player, 'elo': elo_rankings[player], 'wins' : 0, 'losses': 0, 'total': 0 }
@@ -215,9 +216,9 @@ class Command(BaseCommand):
 
             stats_by_user = sorted(stats_by_user.items(), key=lambda x: -1 * x[1]['elo'])
 
-            season_str = "All time" if active_season is None else "This season"
+            season_str = "All time" if active_season is None else active_season
             stats_str = "\n ".join([  " * {}({}): {}/{} ({}%)".format(stats[1]['name'],stats[1]['elo'],stats[1]['wins'],stats[1]['losses'],stats[1]['win_pct'])  for stats in stats_by_user ])
-            stats_str = "{} seaderboard for {}: \n\n{}\n{}".format(season_str, gamename, stats_str,_get_elo_graph(gamename))
+            stats_str = "{} leaderboard for {}: \n\n{}\n{}".format(season_str, gamename, stats_str,_get_elo_graph(gamename,range_start_date))
             message.send(stats_str)
 
         @listen_to('^season (.*)',re.IGNORECASE)
@@ -340,7 +341,7 @@ class Command(BaseCommand):
 
             win_pct = round(stats_for_sender['wins'] * 1.0 / stats_for_sender['total'],2)*100  
             common_tag = Counter(list_tags).most_common()
-            season_str = "*all time*" if active_season is None else "*this season*"
+            season_str = "*all time*" if active_season is None else "*"+active_season+"*"
             if not common_tag:
                 this_message = "{} total {} games played between {} and {} {}. \n{} is {}% likely to win next game"\
                                .format(stats_for_sender['total'],gamename,sender,opponentname,season_str,sender,win_pct)
@@ -405,6 +406,7 @@ class Command(BaseCommand):
             message = arg[0]
             opponentname = arg[1]
             gamename = arg[2]
+
             #input sanitization
             gamename = gamename.strip()
             if parseTags(message, opponentname, gamename) == False:
@@ -413,11 +415,12 @@ class Command(BaseCommand):
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
             opponentname = _get_user_username(message,opponentname)
+            active_season , range_start_date = get_active_season(gamename,True)
 
             winner_old_elo = 1000
             loser_old_elo = 1000
             if gamename == "chess":
-                elo_rankings = _get_elo(gamename)
+                elo_rankings = _get_elo(gamename,range_start_date)
                 if sender in elo_rankings:
                     winner_old_elo = elo_rankings[sender]
                 if opponentname in elo_rankings:
@@ -434,10 +437,10 @@ class Command(BaseCommand):
             #send response
             message.send("#win recorded \n")
             if gamename == "chess":
-                elo_rankings = _get_elo(gamename)
+                elo_rankings = _get_elo(gamename,range_start_date)
                 winner_elo_diff = elo_rankings[sender] - winner_old_elo
                 loser_elo_diff = elo_rankings[opponentname] - loser_old_elo
-                message.send(":arrow_up: {}'s new elo: {} (+{})\n:arrow_down: {}'s new elo: {} ({})\n"\
+                message.send(":arrow_up: {}'s new seasonal elo: {} (+{})\n:arrow_down: {}'s new seasonal elo: {} ({})\n"\
                              .format(sender, elo_rankings[sender], winner_elo_diff, \
                                      opponentname, elo_rankings[opponentname], loser_elo_diff))
 
@@ -458,6 +461,7 @@ class Command(BaseCommand):
             message = arg[0]
             opponentname = arg[1]
             gamename = arg[2]
+
             #input sanitization
             gamename = gamename.strip()
             if parseTags(message, opponentname, gamename) == False:
@@ -465,11 +469,12 @@ class Command(BaseCommand):
 
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
             opponentname = _get_user_username(message,opponentname)
+            active_season , range_start_date = get_active_season(gamename,True)
 
             winner_old_elo = 1000
             loser_old_elo = 1000
             if gamename == "chess":
-                elo_rankings = _get_elo(gamename)
+                elo_rankings = _get_elo(gamename,range_start_date)
                 if sender in elo_rankings:
                     winner_old_elo = elo_rankings[opponentname]
                 if opponentname in elo_rankings:
@@ -485,10 +490,10 @@ class Command(BaseCommand):
             #send response
             message.send("#loss recorded \n")
             if gamename == "chess":
-                elo_rankings = _get_elo(gamename)
+                elo_rankings = _get_elo(gamename,range_start_date)
                 winner_elo_diff = elo_rankings[opponentname] - winner_old_elo
                 loser_elo_diff = elo_rankings[sender] - loser_old_elo
-                message.send(":arrow_up: {}'s new elo: {} (+{})\n:arrow_down: {}'s new elo: {} ({})\n"\
+                message.send(":arrow_up: {}'s new seasonal elo: {} (+{})\n:arrow_down: {}'s new seasonal elo: {} ({})\n"\
                              .format(opponentname, elo_rankings[opponentname], winner_elo_diff, \
                                      sender, elo_rankings[sender], loser_elo_diff))
 
