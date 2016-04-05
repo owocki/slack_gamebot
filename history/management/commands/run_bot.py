@@ -158,17 +158,18 @@ class Command(BaseCommand):
             message.reply(help_message)
 
         def get_active_season(gamename,seasoned):
+            range_start_date = date(2000, 1, 1)
+
             try:
                 active_season = Season.objects.get(gamename=gamename,active=True)
             except Exception as e:
-                active_season = Season.objects.create(gamename=gamename,start_on = datetime.now(),active = True)
+                active_season = Season.objects.create(gamename=gamename,start_on = range_start_date,active = True)
                 active_season.save()
 
             if seasoned:
                 range_start_date = active_season.start_on
             else:
                 active_season = None
-                range_start_date = date(2000, 1, 1)
 
             return active_season, range_start_date
 
