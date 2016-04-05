@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
-from history.models import Game, Tag
-from datetime import datetime
+from history.models import Game, Tag, Season
+from datetime import datetime, date
 from collections import Counter
 from elo import rate_1vs1
 
@@ -130,8 +130,10 @@ class Command(BaseCommand):
                 "    `taunt <@opponent> ` -- taunt @opponent \n\n" +\
                 "    Wins and losses can also be #tagged to record how things went down, e.g. `won @owocki chess #time`. Up to 5 tags can be added.\n\n" +\
                 " _Stats_: \n" +\
-                "    `gamebot leaderboard <gamename>` -- displays the leaderboard for <gamename>\n" +\
+                "    `gamebot leaderboard <gamename>` -- displays this seasons leaderboard for <gamename>\n" +\
+                "    `gamebot alltime leaderboard <gamename>` -- displays the all time leaderboard for <gamename>\n" +\
                 "    `gamebot history <gamename>` -- displays history for <gamename>\n\n" +\
+                "    `gamebot season <gamename>` -- displays season information for <gamename>\n\n" +\
                 " _About_: \n" +\
                 "    `gamebot list-games` -- lists all game types that I'm keeping track of\n" +\
                 "    `gamebot list-tags <gamename>` -- lists all tags associated with a specific <gamename>\n" +\
@@ -155,26 +157,53 @@ class Command(BaseCommand):
                 "More info @ https://github.com/owocki/slack_gamebot " 
             message.reply(help_message)
 
+        def get_active_season(gamename,seasoned):
+            try:
+                active_season = Season.objects.get(gamename=gamename,active=True)
+            except Exception as e:
+                active_season = Season.objects.create(gamename=gamename,start_on = datetime.now(),active = True)
+                active_season.save()
+
+            if seasoned:
+                range_start_date = active_season.start_on
+            else:
+                active_season = None
+                range_start_date = date(2000, 1, 1)
+
+            return active_season, range_start_date
+
+        @listen_to('^gamebot alltime leaderboard (.*)',re.IGNORECASE)
+        @listen_to('^gb alltime leaderboard (.*)', re.IGNORECASE)
+        @listen_to('^alltime leaderboard (.*)',re.IGNORECASE)
+        def unseasoned_leaderboard(message,gamename):
+            return _leaderboard(message,gamename,False)
+
         @listen_to('^gamebot leaderboard (.*)',re.IGNORECASE)
         @listen_to('^gb leaderboard (.*)', re.IGNORECASE)
         @listen_to('^leaderboard (.*)',re.IGNORECASE)
-        def leaderboard(message,gamename):
+        def seasoned_leaderboard(message,gamename):
+            return _leaderboard(message,gamename,True)
+
+        def _leaderboard(message,gamename,seasoned=False):
             #input sanitization
             gamename = gamename.strip()
 
             STATS_SIZE_LIMIT = 1000
 
-            if not Game.objects.filter(gamename=gamename).count():
-                message.send("No stats found for this game type.")
+            active_season , range_start_date = get_active_season(gamename,seasoned)
 
-            players = list(set(list(Game.objects.filter(gamename=gamename).values_list('winner',flat=True).distinct()) + list(Game.objects.filter(gamename=gamename).values_list('loser',flat=True).distinct())))
+            games = Game.objects.filter(created_on__gt=range_start_date,gamename=gamename)
+            if not games.count():
+                message.send("No stats found for this game type {}.".format( "this season" if active_season is not None else "" ))
+
+            players = list(set(list(games.values_list('winner',flat=True).distinct()) + list(games.values_list('loser',flat=True).distinct())))
             stats_by_user = {}
             elo_rankings = _get_elo(gamename)
 
             for player in players:
                 stats_by_user[player] = { 'name': player, 'elo': elo_rankings[player], 'wins' : 0, 'losses': 0, 'total': 0 }
 
-            for game in Game.objects.filter(gamename=gamename).order_by('-created_on')[:STATS_SIZE_LIMIT]:
+            for game in games.order_by('-created_on')[:STATS_SIZE_LIMIT]:
                 stats_by_user[game.winner]['wins']+=1
                 stats_by_user[game.winner]['total']+=1
                 stats_by_user[game.loser]['losses']+=1
@@ -185,9 +214,46 @@ class Command(BaseCommand):
 
             stats_by_user = sorted(stats_by_user.items(), key=lambda x: -1 * x[1]['elo'])
 
+            season_str = "All time" if active_season is None else "This season"
             stats_str = "\n ".join([  " * {}({}): {}/{} ({}%)".format(stats[1]['name'],stats[1]['elo'],stats[1]['wins'],stats[1]['losses'],stats[1]['win_pct'])  for stats in stats_by_user ])
-            stats_str = "Leaderboard for {}: \n\n{}\n{}".format(gamename, stats_str,_get_elo_graph(gamename))
+            stats_str = "{} seaderboard for {}: \n\n{}\n{}".format(season_str, gamename, stats_str,_get_elo_graph(gamename))
             message.send(stats_str)
+
+        @listen_to('^season (.*)',re.IGNORECASE)
+        @listen_to('^gamebot season (.*)',re.IGNORECASE)
+        @listen_to('^gb season (.*)',re.IGNORECASE)
+        def season(message,gamename):
+            #input sanitization
+            gamename = gamename.strip()
+
+            #close current season
+            active_season, start_on = get_active_season(gamename,True)
+
+            #msg back to users
+            msg_str = "{} is active. \nUse `gamebot end season {}` to end this season.".format(active_season, gamename)
+            message.send(msg_str)
+
+
+        @listen_to('^end season (.*)',re.IGNORECASE)
+        @listen_to('^gamebot end season (.*)',re.IGNORECASE)
+        @listen_to('^gb end season (.*)',re.IGNORECASE)
+        def end_season(message,gamename):
+            #input sanitization
+            gamename = gamename.strip()
+
+            #close current season
+            active_season, start_on = get_active_season(gamename,True)
+            active_season.end_on = datetime.now()
+            active_season.active = False
+            active_season.save()
+
+            #start new season
+            new_season = Season.objects.create(gamename=gamename,start_on = datetime.now(),active=True)
+
+            #msg back to users
+            msg_str = "{} ended.\n\n {} opened".format(active_season,new_season)
+            message.send(msg_str)
+
 
         @listen_to('^history (.*)',re.IGNORECASE)
         @listen_to('^gamebot history (.*)',re.IGNORECASE)
@@ -236,16 +302,21 @@ class Command(BaseCommand):
             message.send(this_message)
 
         @listen_to('^predict (.*) (.*)',re.IGNORECASE)
-        def predict(message,opponentname,gamename):
+        def predict(message,opponentname,gamename,seasoned=False):
+            _predict(message,opponentname,gamename,True)
+            _predict(message,opponentname,gamename,False)
+
+        def _predict(message,opponentname,gamename,seasoned=False):
             #input sanitization
             gamename = gamename.strip()
 
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
             opponentname = _get_user_username(message,opponentname)
+            active_season , range_start_date = get_active_season(gamename,seasoned)
             
             #body
-            games = list(Game.objects.filter(gamename=gamename,winner=sender,loser=opponentname))+list(Game.objects.filter(gamename=gamename,winner=opponentname,loser=sender)) 
+            games = list(Game.objects.filter(created_on__gt=range_start_date,gamename=gamename,winner=sender,loser=opponentname))+list(Game.objects.filter(created_on__gt=range_start_date,gamename=gamename,winner=opponentname,loser=sender)) 
             if not games:
                 message.send("No {} games found between {} and {}".format(gamename,sender,opponentname))
                 return;
@@ -268,15 +339,16 @@ class Command(BaseCommand):
 
             win_pct = round(stats_for_sender['wins'] * 1.0 / stats_for_sender['total'],2)*100  
             common_tag = Counter(list_tags).most_common()
+            season_str = "*all time*" if active_season is None else "*this season*"
             if not common_tag:
-                this_message = "{} total {} games played between {} and {}. \n{} is {}% likely to win next game"\
-                               .format(stats_for_sender['total'],gamename,sender,opponentname,sender,win_pct)
+                this_message = "{} total {} games played between {} and {} {}. \n{} is {}% likely to win next game"\
+                               .format(stats_for_sender['total'],gamename,sender,opponentname,season_str,sender,win_pct)
                 message.send(this_message)
             else:                
                 most_probable_tag = common_tag[0][0]
                 #send response
                 this_message = "{} total {} games played between {} and {}. \n{} is {}% likely to win next game by #{}"\
-                               .format(stats_for_sender['total'],gamename,sender,opponentname,sender,win_pct,most_probable_tag)
+                               .format(stats_for_sender['total'],gamename,sender,opponentname,season_str,sender,win_pct,most_probable_tag)
                 message.send(this_message)
 
 

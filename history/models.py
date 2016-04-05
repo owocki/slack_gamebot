@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from django.db import models
 
+
 class Game(models.Model):
     winner = models.CharField(max_length=200)
     loser = models.CharField(max_length=200)
@@ -13,10 +14,10 @@ class Game(models.Model):
         list_tags = []
         list_message = ""
         for tag in Tag.objects.filter(game=self).values_list('tag', flat=True).distinct():
-            list_tags.append(tag)                    
+            list_tags.append(tag)
         for name in list(set(list_tags)):
             list_message += "#{} ".format(name)
-        return '{} beat {} at {} at {} {}'.format(self.winner,self.loser,self.gamename,self.created_on.strftime('%T, %d %b %Y'), list_message)
+        return '{} beat {} at {} at {} {}'.format(self.winner, self.loser, self.gamename, self.created_on.strftime('%T, %d %b %Y'), list_message)
 
 
 class Tag(models.Model):
@@ -25,3 +26,16 @@ class Tag(models.Model):
 
     def __str__(self):
         return '{} in {}'.format(self.tag, self.game.gamename)
+
+
+class Season(models.Model):
+    gamename = models.CharField(max_length=200)
+    start_on = models.DateTimeField('start_on')
+    end_on = models.DateTimeField('end_on', null=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        if self.end_on is None:
+            return "Season {} of {} (started on {} )".format(self.pk, self.gamename, self.start_on)
+        else:
+            return "Season {} of {} (started on {}, ended on {} )".format(self.pk, self.gamename, self.start_on, self.end_on)
