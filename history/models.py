@@ -36,6 +36,6 @@ class Season(models.Model):
 
     def __str__(self):
         if self.end_on is None:
-            return "Season {} of {} (started on {} )".format(self.pk, self.gamename, self.start_on)
+            return "Season {} of {} (started on {} )".format(self.pk, self.gamename, self.start_on.strftime('%Y/%m/%d'))
         else:
-            return "Season {} of {} (started on {}, ended on {} )".format(self.pk, self.gamename, self.start_on, self.end_on)
+            return "Season {} of {} (started on {}, ended on {} )".format(self.pk, self.gamename, self.start_on.strftime('%Y/%m/%d'), self.end_on.strftime('%Y/%m/%d'))

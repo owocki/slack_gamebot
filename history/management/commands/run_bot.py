@@ -345,7 +345,7 @@ class Command(BaseCommand):
 
             win_pct = round(stats_for_sender['wins'] * 1.0 / stats_for_sender['total'],2)*100  
             common_tag = Counter(list_tags).most_common()
-            season_str = "*all time*" if active_season is None else "*"+active_season+"*"
+            season_str = "*all time*" if active_season is None else "*"+str(active_season)+"*"
 
             if not common_tag:
                 this_message = "{} total {} games played between {} and {} {}. \n{} is {}% likely to win next game"\
@@ -361,12 +361,16 @@ class Command(BaseCommand):
                 trend.reverse()
                 trend = "".join(trend)
                 # highlight streaks in trends
-                for streak_size in range(10,3):
+                streak_sizes = range(3,10)
+                streak_sizes.reverse()
+                longest_streak = None
+                for streak_size in streak_sizes:
                     for streak_char in ["W","L"]:
                         streak_string = "".join([ streak_char for i in range(0,streak_size) ] )
-                        marked_streak_string = "*" + streak_string + "*"
-                        trend = trend.replace(streak_string,marked_streak_string)
-                this_message = this_message + "\nTrend:" + trend
+                        if streak_string in trend:
+                            if longest_streak is None:
+                                longest_streak = "{}:{}".format(streak_char,streak_size)
+                this_message = this_message + "\nTrend: " + trend + ( ". Longest streak: {}".format(longest_streak) if longest_streak else "" ) 
 
             message.send(this_message)
 
