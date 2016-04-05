@@ -4,8 +4,10 @@ from history.models import Game, Tag, Season
 from datetime import datetime, date
 from collections import Counter
 from elo import rate_1vs1
+from django.conf import settings
 
 default_start = date(2000, 1, 1)
+trend_size = 30
 
 class Command(BaseCommand):
     help = 'Runs slackbot'
@@ -305,10 +307,10 @@ class Command(BaseCommand):
 
         @listen_to('^predict (.*) (.*)',re.IGNORECASE)
         def predict(message,opponentname,gamename,seasoned=False):
-            _predict(message,opponentname,gamename,True)
-            _predict(message,opponentname,gamename,False)
+            _predict(message,opponentname,gamename,True,False)
+            _predict(message,opponentname,gamename,False,True)
 
-        def _predict(message,opponentname,gamename,seasoned=False):
+        def _predict(message,opponentname,gamename,seasoned=False,show_trend=False):
             #input sanitization
             gamename = gamename.strip()
 
@@ -318,13 +320,15 @@ class Command(BaseCommand):
             active_season , range_start_date = get_active_season(gamename,seasoned)
             
             #body
-            games = list(Game.objects.filter(created_on__gt=range_start_date,gamename=gamename,winner=sender,loser=opponentname))+list(Game.objects.filter(created_on__gt=range_start_date,gamename=gamename,winner=opponentname,loser=sender)) 
+            games = (Game.objects.filter(created_on__gt=range_start_date,gamename=gamename,winner=sender,loser=opponentname)) | (Game.objects.filter(created_on__gt=range_start_date,gamename=gamename,winner=opponentname,loser=sender)) 
+            games = games.order_by('-created_on')
             if not games:
                 message.send("No {} games found between {} and {}".format(gamename,sender,opponentname))
                 return;
                 
             stats_by_user = {}
 
+            #todo: this could all be done in django querysets
             stats_for_sender = { 'wins' : 0, 'losses': 0, 'total': 0 }
             list_tags = []
             for game in games:
@@ -342,16 +346,29 @@ class Command(BaseCommand):
             win_pct = round(stats_for_sender['wins'] * 1.0 / stats_for_sender['total'],2)*100  
             common_tag = Counter(list_tags).most_common()
             season_str = "*all time*" if active_season is None else "*"+active_season+"*"
+
             if not common_tag:
                 this_message = "{} total {} games played between {} and {} {}. \n{} is {}% likely to win next game"\
                                .format(stats_for_sender['total'],gamename,sender,opponentname,season_str,sender,win_pct)
-                message.send(this_message)
             else:                
                 most_probable_tag = common_tag[0][0]
                 #send response
                 this_message = "{} total {} games played between {} and {}. \n{} is {}% likely to win next game by #{}"\
                                .format(stats_for_sender['total'],gamename,sender,opponentname,season_str,sender,win_pct,most_probable_tag)
-                message.send(this_message)
+
+            if show_trend:
+                trend = [ "W" if game.winner == sender else "L" for game in games[0:trend_size] ]
+                trend.reverse()
+                trend = "".join(trend)
+                # highlight streaks in trends
+                for streak_size in range(10,3):
+                    for streak_char in ["W","L"]:
+                        streak_string = "".join([ streak_char for i in range(0,streak_size) ] )
+                        marked_streak_string = "*" + streak_string + "*"
+                        trend = trend.replace(streak_string,marked_streak_string)
+                this_message = this_message + "\nTrend:" + trend
+
+            message.send(this_message)
 
 
         @listen_to('^accept (.*) (.*)',re.IGNORECASE)
@@ -419,7 +436,7 @@ class Command(BaseCommand):
 
             winner_old_elo = 1000
             loser_old_elo = 1000
-            if gamename == "chess":
+            if gamename in settings.ELO_ENABLED_GAMES:
                 elo_rankings = _get_elo(gamename,range_start_date)
                 if sender in elo_rankings:
                     winner_old_elo = elo_rankings[sender]
@@ -436,7 +453,7 @@ class Command(BaseCommand):
 
             #send response
             message.send("#win recorded \n")
-            if gamename == "chess":
+            if gamename in settings.ELO_ENABLED_GAMES:
                 elo_rankings = _get_elo(gamename,range_start_date)
                 winner_elo_diff = elo_rankings[sender] - winner_old_elo
                 loser_elo_diff = elo_rankings[opponentname] - loser_old_elo
@@ -473,7 +490,7 @@ class Command(BaseCommand):
 
             winner_old_elo = 1000
             loser_old_elo = 1000
-            if gamename == "chess":
+            if gamename in settings.ELO_ENABLED_GAMES:
                 elo_rankings = _get_elo(gamename,range_start_date)
                 if sender in elo_rankings:
                     winner_old_elo = elo_rankings[opponentname]
@@ -489,7 +506,7 @@ class Command(BaseCommand):
 
             #send response
             message.send("#loss recorded \n")
-            if gamename == "chess":
+            if gamename in settings.ELO_ENABLED_GAMES:
                 elo_rankings = _get_elo(gamename,range_start_date)
                 winner_elo_diff = elo_rankings[opponentname] - winner_old_elo
                 loser_elo_diff = elo_rankings[sender] - loser_old_elo
