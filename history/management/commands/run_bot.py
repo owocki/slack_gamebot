@@ -190,7 +190,7 @@ class Command(BaseCommand):
 
         def _leaderboard(message,gamename,seasoned=False):
             #input sanitization
-            gamename = gamename.strip()
+            gamename = gamename.strip().lower()
 
             STATS_SIZE_LIMIT = 1000
 
@@ -228,7 +228,7 @@ class Command(BaseCommand):
         @listen_to('^gb season (.*)',re.IGNORECASE)
         def season(message,gamename):
             #input sanitization
-            gamename = gamename.strip()
+            gamename = gamename.strip().lower()
 
             #close current season
             active_season, start_on = get_active_season(gamename,True)
@@ -243,7 +243,7 @@ class Command(BaseCommand):
         @listen_to('^gb end season (.*)',re.IGNORECASE)
         def end_season(message,gamename):
             #input sanitization
-            gamename = gamename.strip()
+            gamename = gamename.strip().lower()
 
             #close current season
             active_season, start_on = get_active_season(gamename,True)
@@ -264,7 +264,7 @@ class Command(BaseCommand):
         @listen_to('^gb history (.*)',re.IGNORECASE)
         def history(message,gamename):
             #input sanitization
-            gamename = gamename.strip()
+            gamename = gamename.strip().lower()
 
             HISTORY_SIZE_LIMIT = 10
             history_str = "\n".join(list( [ "* " + str(game) for game in Game.objects.filter(gamename=gamename).order_by('-created_on')[:HISTORY_SIZE_LIMIT] ]  ))
@@ -277,7 +277,7 @@ class Command(BaseCommand):
         @listen_to('^challenge (.*) (.*)',re.IGNORECASE)
         def challenge(message,opponentname,gamename):
              #input sanitization
-            gamename = gamename.strip()
+            gamename = gamename.strip().lower()
 
            #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
@@ -312,7 +312,7 @@ class Command(BaseCommand):
 
         def _predict(message,opponentname,gamename,seasoned=False,show_trend=False):
             #input sanitization
-            gamename = gamename.strip()
+            gamename = gamename.strip().lower()
 
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
@@ -378,7 +378,7 @@ class Command(BaseCommand):
         @listen_to('^accept (.*) (.*)',re.IGNORECASE)
         def accepted(message,opponentname,gamename):
             #input sanitization
-            gamename = gamename.strip()
+            gamename = gamename.strip().lower()
 
             #setup
             sender = "@" + message.channel._client.users[message.body['user']][u'name']
@@ -429,7 +429,7 @@ class Command(BaseCommand):
             gamename = arg[2]
 
             #input sanitization
-            gamename = gamename.strip()
+            gamename = gamename.strip().lower()
             if parseTags(message, opponentname, gamename) == False:
                 return 
 
@@ -484,7 +484,7 @@ class Command(BaseCommand):
             gamename = arg[2]
 
             #input sanitization
-            gamename = gamename.strip()
+            gamename = gamename.strip().lower()
             if parseTags(message, opponentname, gamename) == False:
                 return 
 
@@ -536,7 +536,7 @@ class Command(BaseCommand):
         @listen_to('^gamebot list-tags (.*)$',re.IGNORECASE)
         @listen_to('^gb list-tags (.*)$',re.IGNORECASE)
         def listTags(message,gamename):
-            gamename = gamename.strip()
+            gamename = gamename.strip().lower()
             if Game.objects.filter(gamename=gamename).count() == 0:
                 message.send("You haven't played any games of {} yet :anguished:".format(gamename))
                 return
