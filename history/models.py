@@ -31,11 +31,12 @@ class Tag(models.Model):
 class Season(models.Model):
     gamename = models.CharField(max_length=200)
     start_on = models.DateTimeField('start_on')
+    season_number = models.IntegerField(default=1)
     end_on = models.DateTimeField('end_on', null=True)
     active = models.BooleanField(default=True)
 
     def __str__(self):
         if self.end_on is None:
-            return "Season {} of {} (started on {} )".format(self.pk, self.gamename, self.start_on.strftime('%Y/%m/%d'))
+            return "Season {} of {} (started on {} )".format(self.season_number, self.gamename, self.start_on.strftime('%Y/%m/%d'))
         else:
-            return "Season {} of {} (started on {}, ended on {} )".format(self.pk, self.gamename, self.start_on.strftime('%Y/%m/%d'), self.end_on.strftime('%Y/%m/%d'))
+            return "Season {} of {} (started on {}, ended on {} )".format(self.season_number, self.gamename, self.start_on.strftime('%Y/%m/%d'), self.end_on.strftime('%Y/%m/%d'))

@@ -253,6 +253,9 @@ class Command(BaseCommand):
 
             #start new season
             new_season = Season.objects.create(gamename=gamename,start_on = datetime.now(),active=True)
+            num_seasons_before = Season.objects.filter(pk__lt=new_season.pk,gamename=new_season.gamename).count()
+            new_season.season_number = num_seasons_before + 1
+            new_season.save()
 
             #msg back to users
             msg_str = "{} ended.\n\n {} opened".format(active_season,new_season)
