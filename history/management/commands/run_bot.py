@@ -351,12 +351,12 @@ class Command(BaseCommand):
             season_str = "*all time*" if active_season is None else "*"+str(active_season)+"*"
 
             if not common_tag:
-                this_message = "{} total {} games played between {} and {} {}. \n{} is {}% likely to win next game"\
+                this_message = "{} total {} games played between {} and {} {} in {}. \n{} is {}% likely to win next game"\
                                .format(stats_for_sender['total'],gamename,sender,opponentname,season_str,sender,win_pct)
             else:                
                 most_probable_tag = common_tag[0][0]
                 #send response
-                this_message = "{} total {} games played between {} and {}. \n{} is {}% likely to win next game by #{}"\
+                this_message = "{} total {} games played between {} and {} in {}. \n{} is {}% likely to win next game by #{}"\
                                .format(stats_for_sender['total'],gamename,sender,opponentname,season_str,sender,win_pct,most_probable_tag)
 
             if show_trend:
