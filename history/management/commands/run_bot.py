@@ -119,35 +119,33 @@ class Command(BaseCommand):
             gifurl = random.choice (gifs)
             return gifurl
 
-        @listen_to('^help', re.IGNORECASE)
         @listen_to('^gamebot help', re.IGNORECASE)
         @listen_to('^gb help', re.IGNORECASE)
         def help(message):
-            help_message="Hello! I am a gamebot for tracking game statistics.  Here's how to use me: \n\n"+\
+            help_message="Hello! I'm gamebot, a slackbot for tracking game statistics.  Here's how to use me: \n\n"+\
                 " _Play_: \n" +\
-                "    `challenge <@opponent> <gamename>` -- challenges @opponent to a friendly game of <gamename> \n" +\
-                "    `accept <@opponent> <gamename>` -- accepts a challenge \n" +\
-                "    `won <@opponent> <gamename>` -- records a win for you against @opponent \n" +\
-                "    `lost <@opponent> <gamename>` -- records a loss for you against @opponent \n" +\
-                "    `predict <@opponent> <gamename>` -- predict the outcome of a game between you and @opponent \n" +\
-                "    `taunt <@opponent> ` -- taunt @opponent \n\n" +\
+                "    `gb challenge <@opponent> <gamename>` -- challenges @opponent to a friendly game of <gamename> \n" +\
+                "    `gb accept <@opponent> <gamename>` -- accepts a challenge \n" +\
+                "    `gb won <@opponent> <gamename>` -- records a win for you against @opponent \n" +\
+                "    `gb lost <@opponent> <gamename>` -- records a loss for you against @opponent \n" +\
+                "    `gb predict <@opponent> <gamename>` -- predict the outcome of a game between you and @opponent \n" +\
+                "    `gb taunt <@opponent> ` -- taunt @opponent \n\n" +\
                 "    Wins and losses can also be #tagged to record how things went down, e.g. `won @owocki chess #time`. Up to 5 tags can be added.\n\n" +\
                 " _Stats_: \n" +\
-                "    `gamebot leaderboard <gamename>` -- displays this seasons leaderboard for <gamename>\n" +\
-                "    `gamebot alltime leaderboard <gamename>` -- displays the all time leaderboard for <gamename>\n" +\
-                "    `gamebot history <gamename>` -- displays history for <gamename>\n\n" +\
-                "    `gamebot season <gamename>` -- displays season information for <gamename>\n\n" +\
+                "    `gb leaderboard <gamename>` -- displays this seasons leaderboard for <gamename>\n" +\
+                "    `gb alltime leaderboard <gamename>` -- displays the all time leaderboard for <gamename>\n" +\
+                "    `gb history <gamename>` -- displays history for <gamename>\n\n" +\
+                "    `gb season <gamename>` -- displays season information for <gamename>\n\n" +\
                 " _About_: \n" +\
-                "    `gamebot list-games` -- lists all game types that I'm keeping track of\n" +\
-                "    `gamebot list-tags <gamename>` -- lists all tags associated with a specific <gamename>\n" +\
-                "    `gamebot help` -- displays help menu (this thing)\n" +\
-                "    `gamebot version` -- displays my software version\n\n" +\
-                " You may also use the handy shortcut `gb <command>`, if you're too tired from being a champion to type `gamebot`" +\
+                "    `gb list-games` -- lists all game types that I'm keeping track of\n" +\
+                "    `gb list-tags <gamename>` -- lists all tags associated with a specific <gamename>\n" +\
+                "    `gb help` -- displays help menu (this thing)\n" +\
+                "    `gb version` -- displays my software version\n\n" +\
+                " You may also call me by my full name: `gamebot <command>`." +\
                 " " 
             message.send(help_message)
 
 
-        @listen_to('^version', re.IGNORECASE)
         @listen_to('^gamebot version', re.IGNORECASE)
         @listen_to('^gb version', re.IGNORECASE)
         def version(message):
@@ -178,13 +176,11 @@ class Command(BaseCommand):
 
         @listen_to('^gamebot alltime leaderboard (.*)',re.IGNORECASE)
         @listen_to('^gb alltime leaderboard (.*)', re.IGNORECASE)
-        @listen_to('^alltime leaderboard (.*)',re.IGNORECASE)
         def unseasoned_leaderboard(message,gamename):
             return _leaderboard(message,gamename,False)
 
         @listen_to('^gamebot leaderboard (.*)',re.IGNORECASE)
         @listen_to('^gb leaderboard (.*)', re.IGNORECASE)
-        @listen_to('^leaderboard (.*)',re.IGNORECASE)
         def seasoned_leaderboard(message,gamename):
             return _leaderboard(message,gamename,True)
 
@@ -223,7 +219,6 @@ class Command(BaseCommand):
             stats_str = "{} leaderboard for {}: \n\n{}\n{}".format(season_str, gamename, stats_str,_get_elo_graph(gamename,range_start_date))
             message.send(stats_str)
 
-        @listen_to('^season (.*)',re.IGNORECASE)
         @listen_to('^gamebot season (.*)',re.IGNORECASE)
         @listen_to('^gb season (.*)',re.IGNORECASE)
         def season(message,gamename):
@@ -238,7 +233,6 @@ class Command(BaseCommand):
             message.send(msg_str)
 
 
-        @listen_to('^end season (.*)',re.IGNORECASE)
         @listen_to('^gamebot end season (.*)',re.IGNORECASE)
         @listen_to('^gb end season (.*)',re.IGNORECASE)
         def end_season(message,gamename):
@@ -262,7 +256,6 @@ class Command(BaseCommand):
             message.send(msg_str)
 
 
-        @listen_to('^history (.*)',re.IGNORECASE)
         @listen_to('^gamebot history (.*)',re.IGNORECASE)
         @listen_to('^gb history (.*)',re.IGNORECASE)
         def history(message,gamename):
@@ -277,7 +270,8 @@ class Command(BaseCommand):
             else:
                 message.send('No history found for {}'.format(gamename))
 
-        @listen_to('^challenge (.*) (.*)',re.IGNORECASE)
+        @listen_to('^gb challenge (.*) (.*)',re.IGNORECASE)
+        @listen_to('^gamebot challenge (.*) (.*)',re.IGNORECASE)
         def challenge(message,opponentname,gamename):
              #input sanitization
             gamename = gamename.strip().lower()
@@ -294,7 +288,8 @@ class Command(BaseCommand):
             this_message = "{}, {} challenged you to {}. accept like this: `{}` \n\n{}".format(opponentname,sender,gamename,accept_message,gifurl)
             message.send(this_message)
 
-        @listen_to('^taunt (.*)',re.IGNORECASE)
+        @listen_to('^gb taunt (.*)',re.IGNORECASE)
+        @listen_to('^gamebot taunt (.*)',re.IGNORECASE)
         def taunt(message,opponentname):
 
             #setup
@@ -308,7 +303,8 @@ class Command(BaseCommand):
             this_message = "{}, {} taunted you {}".format(opponentname,sender,gifurl)
             message.send(this_message)
 
-        @listen_to('^predict (.*) (.*)',re.IGNORECASE)
+        @listen_to('^gb predict (.*) (.*)',re.IGNORECASE)
+        @listen_to('^gamebot predict (.*) (.*)',re.IGNORECASE)
         def predict(message,opponentname,gamename,seasoned=False):
             _predict(message,opponentname,gamename,True,False)
             _predict(message,opponentname,gamename,False,True)
@@ -378,7 +374,8 @@ class Command(BaseCommand):
             message.send(this_message)
 
 
-        @listen_to('^accept (.*) (.*)',re.IGNORECASE)
+        @listen_to('^gb accept (.*) (.*)',re.IGNORECASE)
+        @listen_to('^gamebot accept (.*) (.*)',re.IGNORECASE)
         def accepted(message,opponentname,gamename):
             #input sanitization
             gamename = gamename.strip().lower()
@@ -414,18 +411,30 @@ class Command(BaseCommand):
             return True                
 
 
-        @listen_to('won (.*) (.*)$',re.IGNORECASE)
-        @listen_to('won (.*) (.*) #(.*)$',re.IGNORECASE)        
-        @listen_to('won (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('won (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('won (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('won (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('win (.*) (.*)$',re.IGNORECASE)
-        @listen_to('win (.*) (.*) #(.*)$',re.IGNORECASE)        
-        @listen_to('win (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('win (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('win (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('win (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gb won (.*) (.*)$',re.IGNORECASE)
+        @listen_to('gb won (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('gb won (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gb won (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gb won (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gb won (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gamebot won (.*) (.*)$',re.IGNORECASE)
+        @listen_to('gamebot won (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('gamebot won (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gamebot won (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gamebot won (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gamebot won (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gb win (.*) (.*)$',re.IGNORECASE)
+        @listen_to('gb win (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('gb win (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gb win (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gb win (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gb win (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gamebot win (.*) (.*)$',re.IGNORECASE)
+        @listen_to('gamebot win (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('gamebot win (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gamebot win (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gamebot win (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gamebot win (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
         def won(*arg):
             message = arg[0]
             opponentname = arg[1]
@@ -469,18 +478,30 @@ class Command(BaseCommand):
                                      opponentname, elo_rankings[opponentname], loser_elo_diff))
 
 
-        @listen_to('lost (.*) (.*)$',re.IGNORECASE)
-        @listen_to('lost (.*) (.*) #(.*)$',re.IGNORECASE)        
-        @listen_to('lost (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('lost (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('lost (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('lost (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('loss (.*) (.*)$',re.IGNORECASE)
-        @listen_to('loss (.*) (.*) #(.*)$',re.IGNORECASE)        
-        @listen_to('loss (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('loss (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('loss (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('loss (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gb lost (.*) (.*)$',re.IGNORECASE)
+        @listen_to('gb lost (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('gb lost (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gb lost (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gb lost (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gb lost (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gamebot lost (.*) (.*)$',re.IGNORECASE)
+        @listen_to('gamebot lost (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('gamebot lost (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gamebot lost (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gamebot lost (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gamebot lost (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gb loss (.*) (.*)$',re.IGNORECASE)
+        @listen_to('gb loss (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('gb loss (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gb loss (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gb loss (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gb loss (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gamebot loss (.*) (.*)$',re.IGNORECASE)
+        @listen_to('gamebot loss (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('gamebot loss (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gamebot loss (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gamebot loss (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('gamebot loss (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
         def loss(*arg):
             message = arg[0]
             opponentname = arg[1]
@@ -562,29 +583,40 @@ class Command(BaseCommand):
 
 
         #validation helpers
-        @listen_to('^history$',re.IGNORECASE)
-        @listen_to('^gamebot history$',re.IGNORECASE)
-        @listen_to('^gamebot list-tags$', re.IGNORECASE)
         @listen_to('^gb history$',re.IGNORECASE)
+        @listen_to('^gamebot history$',re.IGNORECASE)
         @listen_to('^gb list-tags$', re.IGNORECASE)
+        @listen_to('^gamebot list-tags$', re.IGNORECASE)
         def error_history(message):
             message.reply('Please specify a gametype.')
 
-        @listen_to('^challenge$',re.IGNORECASE)
-        @listen_to('^accept$',re.IGNORECASE)
-        @listen_to('^win$',re.IGNORECASE)
-        @listen_to('^won$',re.IGNORECASE)
-        @listen_to('^lost$',re.IGNORECASE)
-        @listen_to('^loss$',re.IGNORECASE)
+        @listen_to('^gb challenge$',re.IGNORECASE)
+        @listen_to('^gb accept$',re.IGNORECASE)
+        @listen_to('^gb win$',re.IGNORECASE)
+        @listen_to('^gb won$',re.IGNORECASE)
+        @listen_to('^gb lost$',re.IGNORECASE)
+        @listen_to('^gb loss$',re.IGNORECASE)
+        @listen_to('^gamebot challenge$',re.IGNORECASE)
+        @listen_to('^gamebot accept$',re.IGNORECASE)
+        @listen_to('^gamebot win$',re.IGNORECASE)
+        @listen_to('^gamebot won$',re.IGNORECASE)
+        @listen_to('^gamebot lost$',re.IGNORECASE)
+        @listen_to('^gamebot loss$',re.IGNORECASE)
         def error_history_2(message):
             message.reply('Please specify a gametype and an opponent handle.')
 
-        @listen_to('^challenge (.*)$',re.IGNORECASE)
-        @listen_to('^accept (.*)$',re.IGNORECASE)
-        @listen_to('^win (.*)$',re.IGNORECASE)
-        @listen_to('^won (.*)$',re.IGNORECASE)
-        @listen_to('^lost (.*)$',re.IGNORECASE)
-        @listen_to('^loss (.*)$',re.IGNORECASE)
+        @listen_to('^gb challenge (.*)$',re.IGNORECASE)
+        @listen_to('^gb accept (.*)$',re.IGNORECASE)
+        @listen_to('^gb win (.*)$',re.IGNORECASE)
+        @listen_to('^gb won (.*)$',re.IGNORECASE)
+        @listen_to('^gb lost (.*)$',re.IGNORECASE)
+        @listen_to('^gb loss (.*)$',re.IGNORECASE)
+        @listen_to('^gamebot challenge (.*)$',re.IGNORECASE)
+        @listen_to('^gamebot accept (.*)$',re.IGNORECASE)
+        @listen_to('^gamebot win (.*)$',re.IGNORECASE)
+        @listen_to('^gamebot won (.*)$',re.IGNORECASE)
+        @listen_to('^gamebot lost (.*)$',re.IGNORECASE)
+        @listen_to('^gamebot loss (.*)$',re.IGNORECASE)
         def error_history_3(message,next_arg):
             #message.reply('Please specify both a gametype and an opponent handle.')
             pass
