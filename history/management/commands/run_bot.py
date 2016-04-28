@@ -465,7 +465,7 @@ class Command(BaseCommand):
             # Create tags for game
             if len(arg) > 3:
                 for x in range(3, len(arg)):
-                    Tag.objects.create(tag=arg[x], game=newgame)
+                    Tag.objects.create(tag=arg[x].strip().lower(), game=newgame)
 
             #send response
             message.send("#win recorded \n")
@@ -530,7 +530,7 @@ class Command(BaseCommand):
             # Create tags for game
             if len(arg) > 3:
                 for x in range(3, len(arg)):
-                    Tag.objects.create(tag=arg[x], game=newgame)
+                    Tag.objects.create(tag=arg[x].strip().lower(), game=newgame)
 
             #send response
             message.send("#loss recorded \n")
