@@ -103,7 +103,7 @@ class Command(BaseCommand):
                 opponentname = '@' + str(message.channel._client.users[opp_userid][u'name'])
             else:
                 opponentname = opponentname if opponentname.find('@') != -1 else '@' + opponentname
-            return opponentname
+            return opponentname.lower()
 
         def get_gif(type):
             if type == 'challenge':
@@ -414,18 +414,18 @@ class Command(BaseCommand):
             return True                
 
 
-        @listen_to('won (.*) (.*)$',re.IGNORECASE)
-        @listen_to('won (.*) (.*) #(.*)$',re.IGNORECASE)        
-        @listen_to('won (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('won (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('won (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('won (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('win (.*) (.*)$',re.IGNORECASE)
-        @listen_to('win (.*) (.*) #(.*)$',re.IGNORECASE)        
-        @listen_to('win (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('win (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('win (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('win (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('^won (.*) (.*)$',re.IGNORECASE)
+        @listen_to('^won (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('^won (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('^won (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('^won (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('^won (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('^win (.*) (.*)$',re.IGNORECASE)
+        @listen_to('^win (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('^win (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('^win (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('^win (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('^win (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
         def won(*arg):
             message = arg[0]
             opponentname = arg[1]
@@ -456,7 +456,7 @@ class Command(BaseCommand):
             # Create tags for game
             if len(arg) > 3:
                 for x in range(3, len(arg)):
-                    Tag.objects.create(tag=arg[x], game=newgame)
+                    Tag.objects.create(tag=arg[x].strip(), game=newgame)
 
             #send response
             message.send("#win recorded \n")
@@ -469,18 +469,18 @@ class Command(BaseCommand):
                                      opponentname, elo_rankings[opponentname], loser_elo_diff))
 
 
-        @listen_to('lost (.*) (.*)$',re.IGNORECASE)
-        @listen_to('lost (.*) (.*) #(.*)$',re.IGNORECASE)        
-        @listen_to('lost (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('lost (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('lost (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('lost (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('loss (.*) (.*)$',re.IGNORECASE)
-        @listen_to('loss (.*) (.*) #(.*)$',re.IGNORECASE)        
-        @listen_to('loss (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('loss (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('loss (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
-        @listen_to('loss (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('^lost (.*) (.*)$',re.IGNORECASE)
+        @listen_to('^lost (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('^lost (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('^lost (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('^lost (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('^lost (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('^loss (.*) (.*)$',re.IGNORECASE)
+        @listen_to('^loss (.*) (.*) #(.*)$',re.IGNORECASE)        
+        @listen_to('^loss (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('^loss (.*) (.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('^loss (.*) (.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
+        @listen_to('^loss (.*) (.*) #(.*) #(.*) #(.*) #(.*) #(.*)$',re.IGNORECASE)
         def loss(*arg):
             message = arg[0]
             opponentname = arg[1]
@@ -509,7 +509,7 @@ class Command(BaseCommand):
             # Create tags for game
             if len(arg) > 3:
                 for x in range(3, len(arg)):
-                    Tag.objects.create(tag=arg[x], game=newgame)
+                    Tag.objects.create(tag=arg[x].strip(), game=newgame)
 
             #send response
             message.send("#loss recorded \n")
