@@ -103,7 +103,7 @@ class Command(BaseCommand):
                 opponentname = '@' + str(message.channel._client.users[opp_userid][u'name'])
             else:
                 opponentname = opponentname if opponentname.find('@') != -1 else '@' + opponentname
-            return opponentname
+            return opponentname.lower()
 
         def get_gif(type):
             if type == 'challenge':
@@ -410,7 +410,6 @@ class Command(BaseCommand):
                     return False
             return True                
 
-
         @listen_to('gb won (.*) (.*)$',re.IGNORECASE)
         @listen_to('gb won (.*) (.*) #(.*)$',re.IGNORECASE)        
         @listen_to('gb won (.*) (.*) #(.*) #(.*)$',re.IGNORECASE)
@@ -466,6 +465,7 @@ class Command(BaseCommand):
             if len(arg) > 3:
                 for x in range(3, len(arg)):
                     Tag.objects.create(tag=arg[x].strip().lower(), game=newgame)
+
 
             #send response
             message.send("#win recorded \n")
