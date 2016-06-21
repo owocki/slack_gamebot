@@ -4,6 +4,15 @@ A gamebot for Slack, written in python2 and utilzing Django
 1.9. Gamebot has support for leaderboards, stats, and smack talking;
 it covers all the bases.
 
+## Looks like this:
+
+<img src='https://raw.githubusercontent.com/owocki/slack_gamebot/examples/howto.gif' />
+
+## Creates ELO rankings and charts like this:
+
+<img src='http://bits.owocki.com/102w2P0J231M/Image%202016-03-30%20at%2010.13.30%20AM.png' />
+
+
 ## Setup:
 
 - Get your slack API token:
@@ -27,14 +36,6 @@ pip install --ignore-installed -r requirements.txt
 ```
 - Invite your gamebot to a channel.
 - Start interacting with commands like `gamebot help`.
-
-## Looks like this:
-
-<img src='http://bits.owocki.com/1g2K0G3s450v/Screen%20Recording%202015-12-27%20at%2007.12%20AM.gif' />
-
-## Creates ELO rankings and charts like this:
-
-<img src='http://bits.owocki.com/102w2P0J231M/Image%202016-03-30%20at%2010.13.30%20AM.png' />
 
 
 <!-- Google Analytics --> 

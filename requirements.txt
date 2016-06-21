@@ -1,4 +1,4 @@
-slackbot
+slackbot==0.2.4
 django==1.9
 elo
 plotly
