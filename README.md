@@ -6,7 +6,7 @@ it covers all the bases.
 
 ## Looks like this:
 
-<img src='https://raw.githubusercontent.com/owocki/slack_gamebot/examples/howto.gif' />
+<img src='https://github.com/owocki/slack_gamebot/raw/master/examples/howto.gif' />
 
 ## Creates ELO rankings and charts like this:
 
