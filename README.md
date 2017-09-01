@@ -29,7 +29,7 @@ it covers all the bases.
 ```
 git clone https://github.com/owocki/slack_gamebot.git
 cd slack_gamebot
-echo API_TOKEN = "<YOUR-API-KEY>" > slackbot_settings.py
+echo 'API_TOKEN = "<YOUR-API-KEY>"' > slackbot_settings.py
 pip install --ignore-installed -r requirements.txt
 ./manage.py migrate
 ./manage.py run_bot
